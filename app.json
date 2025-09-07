@@ -1,0 +1,24 @@
+{
+  "name": "Rehabiri",
+  "displayName": "Rehabiri",
+  "version": "1.0.0",
+  "orientation": "portrait",
+  "icon": "./assets/images/rehabiri-light.png",
+  "userInterfaceStyle": "automatic",
+  "ios": {
+    "supportsTablet": true,
+    "bundleIdentifier": "com.yourcompany.rehabiri"
+  },
+  "android": {
+    "package": "com.yourcompany.rehabiri",
+    "permissions": [
+      "android.permission.INTERNET",
+      "android.permission.CAMERA",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.RECORD_AUDIO"
+    ],
+    "versionCode": 1
+  }
+}

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Splash screen colors -->
+    <color name="splash_background">#FFFFFF</color>
+    <color name="splash_text">#001741</color>
+    
+    <!-- App colors -->
+    <color name="primary_color">#001741</color>
+    <color name="accent_color">#007AFF</color>
+</resources>
