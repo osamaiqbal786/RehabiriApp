@@ -263,8 +263,16 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
         animationType="slide"
         onRequestClose={() => setShowPatientPicker(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: theme.modalBg }]}>
-          <View style={[styles.modalContent, { backgroundColor: theme.backgroundColor }]}>
+        <TouchableOpacity
+          style={[styles.modalContainer, { backgroundColor: theme.modalBg }]}
+          activeOpacity={1}
+          onPress={() => setShowPatientPicker(false)}
+        >
+          <TouchableOpacity
+            style={[styles.modalContent, { backgroundColor: theme.backgroundColor }]}
+            activeOpacity={1}
+            onPress={() => {}} // Prevent closing when clicking inside
+          >
             <Text style={[styles.modalTitle, { color: theme.textColor }]}>Select Patient</Text>
             <FlatList
               data={patients}
@@ -287,14 +295,8 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
                 </TouchableOpacity>
               )}
             />
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: theme.separatorColor }]}
-              onPress={() => setShowPatientPicker(false)}
-            >
-              <Text style={[styles.cancelButtonText, { color: theme.textColor }]}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );

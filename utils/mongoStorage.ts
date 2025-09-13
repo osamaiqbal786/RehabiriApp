@@ -1,4 +1,4 @@
-import { Patient, Session, SessionFilter } from '../types';
+import { Patient, Session } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../src/config';
 
@@ -69,15 +69,6 @@ export const savePatient = async (patient: Omit<Patient, 'id' | 'createdAt' | 'u
   }
 };
 
-export const getPatients = async (): Promise<Patient[]> => {
-  try {
-    const response = await apiCall('/api/patients');
-    return extractData(response, 'patients');
-  } catch (error) {
-    console.error('Error getting patients:', error);
-    return [];
-  }
-};
 
 export const getCurrentUserPatients = async (): Promise<Patient[]> => {
   try {
@@ -90,15 +81,6 @@ export const getCurrentUserPatients = async (): Promise<Patient[]> => {
   }
 };
 
-export const getPatientById = async (id: string): Promise<Patient | null> => {
-  try {
-    const response = await apiCall(`/api/patients/${id}`);
-    return extractData(response, 'patient');
-  } catch (error) {
-    console.error('Error getting patient by ID:', error);
-    return null;
-  }
-};
 
 export const updatePatient = async (updatedPatient: Patient): Promise<void> => {
   try {
@@ -232,15 +214,6 @@ export const saveMultipleSessions = async (sessions: Omit<Session, 'id' | 'creat
   }
 };
 
-export const getSessions = async (): Promise<Session[]> => {
-  try {
-    const response = await apiCall('/api/sessions');
-    return extractData(response, 'sessions');
-  } catch (error) {
-    console.error('Error getting sessions:', error);
-    return [];
-  }
-};
 
 export const getTodaySessions = async (): Promise<Session[]> => {
   try {
@@ -275,42 +248,8 @@ export const getUpcomingSessions = async (): Promise<Session[]> => {
   }
 };
 
-export const getPatientSessions = async (patientId: string): Promise<Session[]> => {
-  try {
-    const response = await apiCall(`/api/sessions/patient/${patientId}`);
-    return extractData(response, 'sessions');
-  } catch (error) {
-    console.error('Error getting patient sessions:', error);
-    return [];
-  }
-};
 
-export const getFilteredSessions = async (filters: SessionFilter): Promise<Session[]> => {
-  try {
-    const queryParams = new URLSearchParams();
-    
-    if (filters.patientId) queryParams.append('patientId', filters.patientId);
-    if (filters.startDate) queryParams.append('startDate', filters.startDate);
-    if (filters.endDate) queryParams.append('endDate', filters.endDate);
-    if (filters.includeCancelled !== undefined) queryParams.append('includeCancelled', filters.includeCancelled.toString());
-    
-    const response = await apiCall(`/api/sessions?${queryParams.toString()}`);
-    return extractData(response, 'sessions');
-  } catch (error) {
-    console.error('Error getting filtered sessions:', error);
-    return [];
-  }
-};
 
-export const getSessionById = async (id: string): Promise<Session | null> => {
-  try {
-    const response = await apiCall(`/api/sessions/${id}`);
-    return extractData(response, 'session');
-  } catch (error) {
-    console.error('Error getting session by ID:', error);
-    return null;
-  }
-};
 
 export const updateSession = async (updatedSession: Session): Promise<void> => {
   try {
@@ -335,10 +274,3 @@ export const deleteSession = async (id: string): Promise<void> => {
   }
 };
 
-// Placeholder for getCurrentUser - this should use the new auth system
-export const getCurrentUser = async () => {
-  // This function is now handled by mongoAuth.ts
-  // Keeping it here for compatibility but it should not be used
-  console.warn('getCurrentUser from mongoStorage is deprecated. Use mongoAuth instead.');
-  return null;
-};

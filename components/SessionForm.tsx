@@ -12,9 +12,10 @@ import {
   Platform
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { saveMultipleSessions, updateSession, getCurrentUserPatients, updateAllPatientSessionsDetails, getLastActiveSessionDate } from '../utils/mongoStorage';
-import { Session, Patient } from '../types';
+import { saveMultipleSessions, updateSession, updateAllPatientSessionsDetails, getLastActiveSessionDate } from '../utils/mongoStorage';
+import { Session } from '../types';
 import { scheduleSessionNotification } from '../utils/notifications';
+import { useAppState } from '../src/hooks/useAppState';
 
 interface SessionFormProps {
   existingSession?: Session;
@@ -28,6 +29,9 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
   // Get the device color scheme
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
+
+  // Get patient data from store instead of API call
+  const { patients } = useAppState();
 
   // Create theme object based on the color scheme
   const theme = {
@@ -43,7 +47,6 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
     placeholderColor: isDarkMode ? '#888888' : '#999999',
   };
 
-  const [patients, setPatients] = useState<Patient[]>([]);
   const [patientId, setPatientId] = useState(existingSession?.patientId || preselectedPatientId || '');
   const [sessionCount, setSessionCount] = useState('1');
   const [time, setTime] = useState(existingSession ? new Date(`2000-01-01T${existingSession.time}`) : new Date());
@@ -70,22 +73,11 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
   };
 
   useEffect(() => {
-    const loadPatients = async () => {
-      try {
-        const patientsList = await getCurrentUserPatients();
-        setPatients(patientsList);
-        
-        // If there's only one patient and no patient is selected, select it automatically
-        if (patientsList.length === 1 && !patientId) {
-          setPatientId(patientsList[0].id);
-        }
-      } catch (error) {
-        console.error('Error loading patients:', error);
-      }
-    };
-    
-    loadPatients();
-  }, [patientId]);
+    // If there's only one patient and no patient is selected, select it automatically
+    if (patients.length === 1 && !patientId) {
+      setPatientId(patients[0].id);
+    }
+  }, [patients, patientId]);
 
   const validateForm = (): boolean => {
     const newErrors: { patientId?: string; sessionCount?: string; time?: string; amount?: string } = {};
@@ -655,8 +647,16 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
         animationType="slide"
         onRequestClose={() => setShowPatientPicker(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: theme.modalBg }]}>
-          <View style={[styles.modalContent, { backgroundColor: theme.backgroundColor }]}>
+        <TouchableOpacity
+          style={[styles.modalContainer, { backgroundColor: theme.modalBg }]}
+          activeOpacity={1}
+          onPress={() => setShowPatientPicker(false)}
+        >
+          <TouchableOpacity
+            style={[styles.modalContent, { backgroundColor: theme.backgroundColor }]}
+            activeOpacity={1}
+            onPress={() => {}} // Prevent closing when clicking inside
+          >
             <Text style={[styles.modalTitle, { color: theme.textColor }]}>Select Patient</Text>
             {/* FlatList is removed, using ScrollView for now */}
             <ScrollView>
@@ -679,14 +679,8 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: theme.cancelButtonBg }]}
-              onPress={() => setShowPatientPicker(false)}
-            >
-              <Text style={[styles.cancelButtonText, { color: theme.textColor }]}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
       
       {/* Time Picker */}

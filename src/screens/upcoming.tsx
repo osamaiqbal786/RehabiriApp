@@ -13,7 +13,7 @@ import {
 import { useRoute } from '@react-navigation/native';
 import { Plus, Filter } from 'lucide-react-native';
 import { Session } from '../../types';
-import { updateSession, deleteSession, getFilteredSessions } from '../../utils/mongoStorage';
+import { updateSession, deleteSession } from '../../utils/mongoStorage';
 import { useAppState } from '../hooks/useAppState';
 import { useDataRefresh } from '../hooks/useDataRefresh';
 import SessionCard from '../../components/SessionCard';
@@ -64,22 +64,48 @@ export default function UpcomingScreen() {
     separatorColor: isDarkMode ? '#333333' : '#EFEFEF',
   };
 
-  // Handle filtering logic
-  const applyFilters = useCallback(async (filters?: any) => {
+  // Local filtering function - no API calls needed!
+  const filterSessionsLocally = useCallback((sessions: Session[], filters: any) => {
+    let filtered = [...sessions];
+
+    // Filter by patient ID
+    if (filters.patientId) {
+      filtered = filtered.filter(session => session.patientId === filters.patientId);
+    }
+
+    // Filter by date range
+    if (filters.startDate) {
+      filtered = filtered.filter(session => session.date >= filters.startDate);
+    }
+    if (filters.endDate) {
+      filtered = filtered.filter(session => session.date <= filters.endDate);
+    }
+
+    // Filter by cancelled status
+    if (filters.includeCancelled === false) {
+      filtered = filtered.filter(session => !session.cancelled);
+    }
+
+    // For upcoming screen, ensure we only show upcoming sessions (not completed/cancelled)
+    filtered = filtered.filter(session => !session.completed && !session.cancelled);
+
+    return filtered;
+  }, []);
+
+  // Handle filtering logic - now using local filtering!
+  const applyFilters = useCallback((filters?: any) => {
     try {
       if (patientId && !filters) {
         // Filter by patient from route params
         setIsFiltered(true);
         const filter = { patientId: patientId };
-        const filteredSessionsData = await getFilteredSessions(filter);
-        const upcomingSessionsData = filteredSessionsData.filter(session => !session.completed && !session.cancelled);
-        setFilteredSessions(upcomingSessionsData);
+        const filteredSessionsData = filterSessionsLocally(upcomingSessions, filter);
+        setFilteredSessions(filteredSessionsData);
       } else if (filters) {
         // Filter by provided filters
         setIsFiltered(true);
-        const filteredSessionsData = await getFilteredSessions(filters);
-        const upcomingSessionsData = filteredSessionsData.filter(session => !session.completed && !session.cancelled);
-        setFilteredSessions(upcomingSessionsData);
+        const filteredSessionsData = filterSessionsLocally(upcomingSessions, filters);
+        setFilteredSessions(filteredSessionsData);
       } else {
         // No filters, use global state
         setIsFiltered(false);
@@ -88,7 +114,7 @@ export default function UpcomingScreen() {
     } catch (error) {
       console.error('Error applying filters:', error);
     }
-  }, [patientId]);
+  }, [patientId, upcomingSessions, filterSessionsLocally]);
 
   // Get the sessions to display (filtered or global)
   const displaySessions = isFiltered ? filteredSessions : upcomingSessions;

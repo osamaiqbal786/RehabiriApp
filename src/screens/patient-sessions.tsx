@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import { Session } from '../../types';
-import { getPatientSessions, getPatientById, deleteSession } from '../../utils/mongoStorage';
+import { deleteSession } from '../../utils/mongoStorage';
+import { useAppState } from '../hooks/useAppState';
 import { exportSessionsToExcel } from '../../utils/exportUtils';
 import SessionCard from '../../components/SessionCard';
 import SessionEditModal from '../../components/SessionEditModal';
@@ -27,6 +28,9 @@ export default function PatientSessionsScreen() {
   const [patientName, setPatientName] = useState('');
   const [sessionModalVisible, setSessionModalVisible] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | undefined>(undefined);
+
+  // Get session and patient data from store instead of API calls
+  const { todaySessions, upcomingSessions, pastSessions, patients } = useAppState();
 
   // Get route params
   const route = useRoute();
@@ -48,30 +52,30 @@ export default function PatientSessionsScreen() {
     modalBg: isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
   };
 
-  const loadPatientInfo = useCallback(async () => {
+  const loadPatientInfo = useCallback(() => {
     if (!patientId) return;
     
-    try {
-      const patient = await getPatientById(patientId);
-      if (patient) {
-        setPatientName(patient.name);
-      }
-    } catch (error) {
-      console.error('Error loading patient info:', error);
+    // Get patient name from store data instead of API call
+    const patient = patients.find(p => p.id === patientId);
+    if (patient) {
+      setPatientName(patient.name);
     }
-  }, [patientId]);
+  }, [patientId, patients]);
 
-  const loadSessions = useCallback(async () => {
+  const loadSessions = useCallback(() => {
     if (!patientId) return;
     
     try {
       setLoading(true);
       
-      // Use the new getPatientSessions function which filters by both patientId and userId
-      const allSessions = await getPatientSessions(patientId);
+      // Get all sessions from store (today, upcoming, past)
+      const allSessions = [...todaySessions, ...upcomingSessions, ...pastSessions];
+      
+      // Filter by patient ID
+      const patientSessions = allSessions.filter(session => session.patientId === patientId);
       
       // Filter based on the selected tab (completed or upcoming)
-      let filteredByStatus = allSessions.filter(session => 
+      let filteredByStatus = patientSessions.filter(session => 
         showCompletedSessions ? (session.completed || session.cancelled) : (!session.completed && !session.cancelled)
       );
       
@@ -95,7 +99,7 @@ export default function PatientSessionsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [patientId, showCompletedSessions, hideCancelled]);
+  }, [patientId, showCompletedSessions, hideCancelled, todaySessions, upcomingSessions, pastSessions]);
 
   useEffect(() => {
     loadPatientInfo();
