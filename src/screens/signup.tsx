@@ -21,14 +21,28 @@ import { sendOTP } from '../../utils/mongoAuth';
 
 export default function SignupScreen() {
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [houseNumber, setHouseNumber] = useState('');
+  const [area, setArea] = useState('');
+  const [pincode, setPincode] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [highestQualification, setHighestQualification] = useState('');
   const [errors, setErrors] = useState<{ 
     email?: string; 
+    name?: string;
     phoneNumber?: string;
     password?: string;
     confirmPassword?: string;
+    houseNumber?: string;
+    area?: string;
+    pincode?: string;
+    city?: string;
+    state?: string;
+    highestQualification?: string;
   }>({});
   const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [isSendingOTP, setIsSendingOTP] = useState(false);
@@ -54,9 +68,16 @@ export default function SignupScreen() {
   const validateForm = () => {
     const newErrors: { 
       email?: string; 
+      name?: string;
       phoneNumber?: string;
       password?: string;
       confirmPassword?: string;
+      houseNumber?: string;
+      area?: string;
+      pincode?: string;
+      city?: string;
+      state?: string;
+      highestQualification?: string;
     } = {};
     let isValid = true;
 
@@ -65,6 +86,11 @@ export default function SignupScreen() {
       isValid = false;
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = 'Email is invalid';
+      isValid = false;
+    }
+
+    if (!name.trim()) {
+      newErrors.name = 'Name is required';
       isValid = false;
     }
 
@@ -83,6 +109,36 @@ export default function SignupScreen() {
 
     if (password !== confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
+      isValid = false;
+    }
+
+    if (!houseNumber.trim()) {
+      newErrors.houseNumber = 'House number is required';
+      isValid = false;
+    }
+
+    if (!area.trim()) {
+      newErrors.area = 'Area is required';
+      isValid = false;
+    }
+
+    if (!pincode.trim()) {
+      newErrors.pincode = 'Pincode is required';
+      isValid = false;
+    }
+
+    if (!city.trim()) {
+      newErrors.city = 'City is required';
+      isValid = false;
+    }
+
+    if (!state.trim()) {
+      newErrors.state = 'State is required';
+      isValid = false;
+    }
+
+    if (!highestQualification.trim()) {
+      newErrors.highestQualification = 'Highest qualification is required';
       isValid = false;
     }
 
@@ -113,7 +169,20 @@ export default function SignupScreen() {
   const handleOTPVerificationSuccess = async () => {
     try {
       // Create user account after OTP verification
-      await register({ email, phoneNumber, password });
+      await register({ 
+        email, 
+        name,
+        phoneNumber, 
+        password,
+        address: {
+          houseNumber,
+          area,
+          pincode,
+          city,
+          state
+        },
+        highestQualification
+      });
       // User is automatically signed in after registration
       navigation.navigate('MainTabs' as never);
     } catch (error) {
@@ -158,6 +227,26 @@ export default function SignupScreen() {
           <Text style={[styles.subtitle, { color: theme.subtitleColor }]}>Join Rehabiri</Text>
 
           <View style={[styles.form, { backgroundColor: theme.cardBackground }]}>
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: theme.textColor }]}>Name</Text>
+              <TextInput
+                style={[
+                  styles.input, 
+                  { 
+                    backgroundColor: theme.inputBackground, 
+                    borderColor: errors.name ? theme.errorColor : theme.inputBorder,
+                    color: theme.textColor
+                  }
+                ]}
+                placeholder="Enter your full name"
+                placeholderTextColor={theme.placeholderColor}
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+              />
+              {errors.name ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.name}</Text> : null}
+            </View>
+
             <View style={styles.inputContainer}>
               <Text style={[styles.label, { color: theme.textColor }]}>Email</Text>
               <TextInput
@@ -239,6 +328,128 @@ export default function SignupScreen() {
               {errors.confirmPassword ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.confirmPassword}</Text> : null}
             </View>
 
+            <Text style={[styles.sectionTitle, { color: theme.textColor }]}>Address Details</Text>
+
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: theme.textColor }]}>House Number</Text>
+              <TextInput
+                style={[
+                  styles.input, 
+                  { 
+                    backgroundColor: theme.inputBackground, 
+                    borderColor: errors.houseNumber ? theme.errorColor : theme.inputBorder,
+                    color: theme.textColor
+                  }
+                ]}
+                placeholder="Enter house number"
+                placeholderTextColor={theme.placeholderColor}
+                value={houseNumber}
+                onChangeText={setHouseNumber}
+              />
+              {errors.houseNumber ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.houseNumber}</Text> : null}
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: theme.textColor }]}>Area</Text>
+              <TextInput
+                style={[
+                  styles.input, 
+                  { 
+                    backgroundColor: theme.inputBackground, 
+                    borderColor: errors.area ? theme.errorColor : theme.inputBorder,
+                    color: theme.textColor
+                  }
+                ]}
+                placeholder="Enter area/locality"
+                placeholderTextColor={theme.placeholderColor}
+                value={area}
+                onChangeText={setArea}
+                autoCapitalize="words"
+              />
+              {errors.area ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.area}</Text> : null}
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: theme.textColor }]}>Pincode</Text>
+              <TextInput
+                style={[
+                  styles.input, 
+                  { 
+                    backgroundColor: theme.inputBackground, 
+                    borderColor: errors.pincode ? theme.errorColor : theme.inputBorder,
+                    color: theme.textColor
+                  }
+                ]}
+                placeholder="Enter pincode"
+                placeholderTextColor={theme.placeholderColor}
+                value={pincode}
+                onChangeText={setPincode}
+                keyboardType="numeric"
+                maxLength={6}
+              />
+              {errors.pincode ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.pincode}</Text> : null}
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: theme.textColor }]}>City</Text>
+              <TextInput
+                style={[
+                  styles.input, 
+                  { 
+                    backgroundColor: theme.inputBackground, 
+                    borderColor: errors.city ? theme.errorColor : theme.inputBorder,
+                    color: theme.textColor
+                  }
+                ]}
+                placeholder="Enter city"
+                placeholderTextColor={theme.placeholderColor}
+                value={city}
+                onChangeText={setCity}
+                autoCapitalize="words"
+              />
+              {errors.city ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.city}</Text> : null}
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: theme.textColor }]}>State</Text>
+              <TextInput
+                style={[
+                  styles.input, 
+                  { 
+                    backgroundColor: theme.inputBackground, 
+                    borderColor: errors.state ? theme.errorColor : theme.inputBorder,
+                    color: theme.textColor
+                  }
+                ]}
+                placeholder="Enter state"
+                placeholderTextColor={theme.placeholderColor}
+                value={state}
+                onChangeText={setState}
+                autoCapitalize="words"
+              />
+              {errors.state ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.state}</Text> : null}
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: theme.textColor }]}>Highest Qualification</Text>
+              <TextInput
+                style={[
+                  styles.input, 
+                  { 
+                    backgroundColor: theme.inputBackground, 
+                    borderColor: errors.highestQualification ? theme.errorColor : theme.inputBorder,
+                    color: theme.textColor
+                  }
+                ]}
+                placeholder="e.g., BPT, MPT, PhD, etc."
+                placeholderTextColor={theme.placeholderColor}
+                value={highestQualification}
+                onChangeText={setHighestQualification}
+                autoCapitalize="words"
+              />
+              {errors.highestQualification ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.highestQualification}</Text> : null}
+            </View>
+
             <TouchableOpacity
               style={[styles.button, { backgroundColor: theme.primaryColor }]}
               onPress={handleSendOTP}
@@ -306,6 +517,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 8,
     fontWeight: '500',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 20,
+    marginBottom: 15,
   },
   input: {
     borderWidth: 1,

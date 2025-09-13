@@ -21,6 +21,7 @@ import PatientForm from '../../components/PatientForm';
 import PatientCard from '../../components/PatientCard';
 import SessionForm from '../../components/SessionForm';
 import DataStatusBar from '../components/DataStatusBar';
+import StatusMessage from '../components/StatusMessage';
 
 export default function PatientsScreen() {
   const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
@@ -36,6 +37,7 @@ export default function PatientsScreen() {
     patients, 
     patientsLoading, 
     patientsError,
+    patientsRefreshFailed,
     dispatch 
   } = useAppState();
   
@@ -194,6 +196,13 @@ export default function PatientsScreen() {
       <DataStatusBar 
         onRefresh={refreshPatients}
         dataType="patients"
+      />
+
+      {/* Refresh Failure Message */}
+      <StatusMessage 
+        visible={patientsRefreshFailed} 
+        type="error" 
+        message="Failed to refresh data" 
       />
 
       {patientsLoading ? (

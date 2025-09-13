@@ -20,6 +20,7 @@ import SessionCard from '../../components/SessionCard';
 import SessionEditModal from '../../components/SessionEditModal';
 import SessionFilter from '../../components/SessionFilter';
 import DataStatusBar from '../components/DataStatusBar';
+import StatusMessage from '../components/StatusMessage';
 
 export default function UpcomingScreen() {
   const [modalVisible, setModalVisible] = useState(false);
@@ -34,6 +35,7 @@ export default function UpcomingScreen() {
     patients,
     sessionsLoading, 
     sessionsError,
+    sessionsRefreshFailed,
     dispatch 
   } = useAppState();
   
@@ -224,6 +226,13 @@ export default function UpcomingScreen() {
       <DataStatusBar 
         onRefresh={refreshSessions}
         dataType="sessions"
+      />
+
+      {/* Refresh Failure Message */}
+      <StatusMessage 
+        visible={sessionsRefreshFailed} 
+        type="error" 
+        message="Failed to refresh data" 
       />
 
       {sessionsLoading ? (

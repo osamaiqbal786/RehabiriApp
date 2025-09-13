@@ -74,19 +74,54 @@ export function useDataRefresh() {
     }
   }, [dispatch]);
 
-  // Manual refresh functions
-  const refreshPatients = useCallback(() => {
-    dispatch({ type: 'TRIGGER_PATIENTS_REFRESH' });
+  // Manual refresh functions with better error handling
+  const refreshPatients = useCallback(async () => {
+    try {
+      dispatch({ type: 'SET_PATIENTS_LOADING', payload: true });
+      dispatch({ type: 'SET_REFRESH_FAILED', payload: { patients: false } }); // Clear previous failure
+      const patients = await getCurrentUserPatients();
+      dispatch({ type: 'SET_PATIENTS_DATA', payload: patients });
+    } catch (error) {
+      console.error('Error refreshing patients:', error);
+      // Don't set error state for refresh failures - preserve existing data
+      // Just stop loading state and mark refresh as failed
+      dispatch({ type: 'SET_PATIENTS_LOADING', payload: false });
+      dispatch({ type: 'SET_REFRESH_FAILED', payload: { patients: true } });
+    }
   }, [dispatch]);
 
-  const refreshSessions = useCallback(() => {
-    dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
+  const refreshSessions = useCallback(async () => {
+    try {
+      dispatch({ type: 'SET_SESSIONS_LOADING', payload: true });
+      dispatch({ type: 'SET_REFRESH_FAILED', payload: { sessions: false } }); // Clear previous failure
+      
+      // Fetch all session types in parallel
+      const [todaySessions, upcomingSessions, pastSessions] = await Promise.all([
+        getTodaySessions(),
+        getUpcomingSessions(),
+        getPastSessions()
+      ]);
+      
+      dispatch({ 
+        type: 'SET_SESSIONS_DATA', 
+        payload: { 
+          today: todaySessions, 
+          upcoming: upcomingSessions, 
+          past: pastSessions 
+        } 
+      });
+    } catch (error) {
+      console.error('Error refreshing sessions:', error);
+      // Don't set error state for refresh failures - preserve existing data
+      // Just stop loading state and mark refresh as failed
+      dispatch({ type: 'SET_SESSIONS_LOADING', payload: false });
+      dispatch({ type: 'SET_REFRESH_FAILED', payload: { sessions: true } });
+    }
   }, [dispatch]);
 
-  const refreshAll = useCallback(() => {
-    dispatch({ type: 'TRIGGER_PATIENTS_REFRESH' });
-    dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
-  }, [dispatch]);
+  const refreshAll = useCallback(async () => {
+    await Promise.all([refreshPatients(), refreshSessions()]);
+  }, [refreshPatients, refreshSessions]);
 
   // Clear errors
   const clearErrors = useCallback(() => {

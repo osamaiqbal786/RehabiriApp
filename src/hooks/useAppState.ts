@@ -56,6 +56,10 @@ export function useAppState() {
     shouldRefreshPatients: state.refreshTriggers.patients,
     shouldRefreshSessions: state.refreshTriggers.sessions,
     
+    // Refresh failures
+    patientsRefreshFailed: state.refreshFailed?.patients || false,
+    sessionsRefreshFailed: state.refreshFailed?.sessions || false,
+    
     // Actions
     dispatch,
   };

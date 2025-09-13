@@ -55,7 +55,6 @@ export default function EarningsDetailScreen() {
         try {
           setLoading(true);
           const detail = await getMonthlyEarningsDetail(year, month);
-          console.log('Earnings detail received:', detail);
           setEarningsDetail(detail);
           
           // Show celebration animation after a short delay

@@ -19,6 +19,10 @@ export interface AppState {
     patients: boolean;
     sessions: boolean;
   };
+  refreshFailed: {
+    patients: boolean;
+    sessions: boolean;
+  };
   globalLoading: boolean;
 }
 
@@ -33,7 +37,8 @@ export type AppAction =
   | { type: 'TRIGGER_PATIENTS_REFRESH' }
   | { type: 'TRIGGER_SESSIONS_REFRESH' }
   | { type: 'CLEAR_ERRORS' }
-  | { type: 'CLEAR_ALL_DATA' };
+  | { type: 'CLEAR_ALL_DATA' }
+  | { type: 'SET_REFRESH_FAILED'; payload: { patients?: boolean; sessions?: boolean } };
 
 const initialState: AppState = {
   patients: {
@@ -51,6 +56,10 @@ const initialState: AppState = {
     error: null,
   },
   refreshTriggers: {
+    patients: false,
+    sessions: false,
+  },
+  refreshFailed: {
     patients: false,
     sessions: false,
   },
@@ -174,6 +183,15 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         refreshTriggers: {
           patients: false,
           sessions: false,
+        },
+      };
+
+    case 'SET_REFRESH_FAILED':
+      return {
+        ...state,
+        refreshFailed: {
+          patients: action.payload.patients ?? state.refreshFailed?.patients ?? false,
+          sessions: action.payload.sessions ?? state.refreshFailed?.sessions ?? false,
         },
       };
 

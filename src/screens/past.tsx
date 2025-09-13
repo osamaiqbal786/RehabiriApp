@@ -22,6 +22,7 @@ import SessionFilter from '../../components/SessionFilter';
 import { exportSessionsToExcel } from '../../utils/exportUtils';
 import PaymentModal from '../../components/PaymentModal';
 import DataStatusBar from '../components/DataStatusBar';
+import StatusMessage from '../components/StatusMessage';
 
 export default function PastScreen() {
   const [isFiltered, setIsFiltered] = useState(false);
@@ -39,6 +40,7 @@ export default function PastScreen() {
     patients,
     sessionsLoading, 
     sessionsError,
+    sessionsRefreshFailed,
     dispatch 
   } = useAppState();
   
@@ -264,6 +266,13 @@ export default function PastScreen() {
       <DataStatusBar 
         onRefresh={refreshSessions}
         dataType="sessions"
+      />
+
+      {/* Refresh Failure Message */}
+      <StatusMessage 
+        visible={sessionsRefreshFailed} 
+        type="error" 
+        message="Failed to refresh data" 
       />
 
       {sessionsLoading ? (

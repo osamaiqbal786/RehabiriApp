@@ -1,9 +1,6 @@
 import { Patient, Session, SessionFilter } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Config from 'react-native-config';
-
-// API Base URL - should match your server configuration
-export const API_BASE_URL = Config.PUBLIC_API_BASE_URL || 'http://13.62.52.14:3000';
+import { API_CONFIG } from '../src/config';
 
 // Helper function to get auth headers
 const getAuthHeaders = async () => {
@@ -23,7 +20,7 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   try {
     const headers = await getAuthHeaders();
     
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
       ...options,
       headers: {
         ...headers,
@@ -88,7 +85,8 @@ export const getCurrentUserPatients = async (): Promise<Patient[]> => {
     return extractData(response, 'patients') || [];
   } catch (error) {
     console.error('Error getting current user patients:', error);
-    return [];
+    // Don't return empty array - let the error propagate to preserve existing data
+    throw error;
   }
 };
 
@@ -179,20 +177,18 @@ export const getPatientsWithActiveSessions = async (patientIds: string[]): Promi
 export const getMonthlyEarnings = async (): Promise<any[]> => {
   try {
     const response = await apiCall('/api/earnings/monthly');
-    console.log('Monthly earnings response:', response);
     const monthlyEarnings = extractData(response, 'monthlyEarnings') || [];
-    console.log('Extracted monthly earnings:', monthlyEarnings);
     return monthlyEarnings;
   } catch (error) {
     console.error('Error getting monthly earnings:', error);
-    return [];
+    // Don't return empty array - let the error propagate to preserve existing data
+    throw error;
   }
 };
 
 export const getMonthlyEarningsDetail = async (year: number, month: string): Promise<any> => {
   try {
     const response = await apiCall(`/api/earnings/monthly/${year}/${month}`);
-    console.log('Monthly earnings detail response:', response);
     
     // Extract data from response structure
     if (response.data) {
@@ -252,7 +248,8 @@ export const getTodaySessions = async (): Promise<Session[]> => {
     return extractData(response, 'sessions') || [];
   } catch (error) {
     console.error('Error getting today sessions:', error);
-    return [];
+    // Don't return empty array - let the error propagate to preserve existing data
+    throw error;
   }
 };
 
@@ -262,7 +259,8 @@ export const getPastSessions = async (): Promise<Session[]> => {
     return extractData(response, 'sessions');
   } catch (error) {
     console.error('Error getting past sessions:', error);
-    return [];
+    // Don't return empty array - let the error propagate to preserve existing data
+    throw error;
   }
 };
 
@@ -272,7 +270,8 @@ export const getUpcomingSessions = async (): Promise<Session[]> => {
     return extractData(response, 'sessions');
   } catch (error) {
     console.error('Error getting upcoming sessions:', error);
-    return [];
+    // Don't return empty array - let the error propagate to preserve existing data
+    throw error;
   }
 };
 

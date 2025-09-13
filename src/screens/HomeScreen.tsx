@@ -9,6 +9,7 @@ import SessionCard from '../../components/SessionCard';
 import SessionForm from '../../components/SessionForm';
 import PaymentModal from '../../components/PaymentModal';
 import DataStatusBar from '../components/DataStatusBar';
+import StatusMessage from '../components/StatusMessage';
 
 export default function TodayScreen() {
   const [modalVisible, setModalVisible] = useState(false);
@@ -22,6 +23,7 @@ export default function TodayScreen() {
     todaySessions, 
     sessionsLoading, 
     sessionsError,
+    sessionsRefreshFailed,
     dispatch 
   } = useAppState();
   
@@ -149,6 +151,13 @@ export default function TodayScreen() {
       <DataStatusBar 
         onRefresh={refreshSessions}
         dataType="sessions"
+      />
+
+      {/* Refresh Failure Message */}
+      <StatusMessage 
+        visible={sessionsRefreshFailed} 
+        type="error" 
+        message="Failed to refresh data" 
       />
 
       {sessionsLoading ? (

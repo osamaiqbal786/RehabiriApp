@@ -1,14 +1,11 @@
 import { User } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Config from 'react-native-config';
-
-// API Base URL - should match your server configuration
-const API_BASE_URL = Config.PUBLIC_API_BASE_URL || 'http://13.62.52.14:3000';
+import { API_CONFIG } from '../src/config';
 
 // Helper function to make API calls
 const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -149,11 +146,25 @@ export const updateUser = async (updatedUser: Omit<User, 'password'>): Promise<O
   }
 };
 
-export const resetPassword = async (email: string, newPassword: string): Promise<boolean> => {
+export const sendPasswordResetOTP = async (email: string): Promise<{ message: string }> => {
+  try {
+    const response = await apiCall('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Error sending password reset OTP:', error);
+    throw error;
+  }
+};
+
+export const resetPassword = async (email: string, otp: string, newPassword: string): Promise<boolean> => {
   try {
     await apiCall('/api/auth/reset-password', {
       method: 'POST',
-      body: JSON.stringify({ email, newPassword }),
+      body: JSON.stringify({ email, otp, newPassword }),
     });
 
     return true;

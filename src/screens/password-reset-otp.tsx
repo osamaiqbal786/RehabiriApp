@@ -12,17 +12,20 @@ import {
   Platform,
   KeyboardAvoidingView
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { sendPasswordResetOTP } from '../../utils/mongoAuth';
+import { verifyPasswordResetOTP } from '../../utils/mongoAuth';
 
-export default function ForgotPasswordScreen() {
-  const [email, setEmail] = useState('');
+export default function PasswordResetOTPScreen() {
+  const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
   const navigation = useNavigation();
+  const route = useRoute();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
+
+  const { email } = route.params as { email: string };
 
   const theme = {
     backgroundColor: isDarkMode ? '#1E1E1E' : '#F5F5F5',
@@ -36,19 +39,24 @@ export default function ForgotPasswordScreen() {
     errorColor: '#FF453A',
   };
 
-  const handleResetPassword = async () => {
-    if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email address');
+  const handleVerifyOTP = async () => {
+    if (!otp.trim()) {
+      Alert.alert('Error', 'Please enter the OTP');
+      return;
+    }
+
+    if (otp.length !== 6) {
+      Alert.alert('Error', 'Please enter a valid 6-digit OTP');
       return;
     }
 
     setIsLoading(true);
     try {
-      await sendPasswordResetOTP(email);
-      // Navigate directly to OTP screen
-      (navigation as any).navigate('PasswordResetOTP', { email });
+      await verifyPasswordResetOTP(email, otp);
+      // Navigate to new password screen
+      (navigation as any).navigate('NewPassword', { email, otp });
     } catch (error) {
-      Alert.alert('Error', 'Failed to send reset OTP. Please try again.');
+      Alert.alert('Error', 'Invalid or expired OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -67,14 +75,14 @@ export default function ForgotPasswordScreen() {
         style={styles.keyboardAvoidingView}
       >
         <View style={styles.content}>
-          <Text style={[styles.title, { color: theme.textColor }]}>Reset Password</Text>
+          <Text style={[styles.title, { color: theme.textColor }]}>Enter OTP</Text>
           <Text style={[styles.subtitle, { color: theme.subtitleColor }]}>
-            Enter your email address and we'll send you an OTP for verification
+            We've sent a 6-digit code to {email}
           </Text>
 
           <View style={[styles.form, { backgroundColor: theme.cardBackground }]}>
             <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: theme.textColor }]}>Email</Text>
+              <Text style={[styles.label, { color: theme.textColor }]}>OTP Code</Text>
               <TextInput
                 style={[
                   styles.input, 
@@ -84,25 +92,26 @@ export default function ForgotPasswordScreen() {
                     color: theme.textColor
                   }
                 ]}
-                placeholder="Enter your email"
+                placeholder="Enter 6-digit OTP"
                 placeholderTextColor={theme.placeholderColor}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
+                value={otp}
+                onChangeText={setOtp}
+                keyboardType="numeric"
+                maxLength={6}
+                autoFocus
               />
             </View>
 
             <TouchableOpacity
               style={[styles.button, { backgroundColor: theme.primaryColor }]}
-              onPress={handleResetPassword}
+              onPress={handleVerifyOTP}
               disabled={isLoading}
               activeOpacity={0.7}
             >
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>Get OTP</Text>
+                <Text style={styles.buttonText}>Verify OTP</Text>
               )}
             </TouchableOpacity>
 
@@ -111,7 +120,7 @@ export default function ForgotPasswordScreen() {
               style={styles.backToLoginContainer}
               activeOpacity={0.7}
             >
-              <Text style={[styles.backToLoginText, { color: theme.primaryColor }]}>
+              <Text style={[styles.backToLoginText, { color: theme.subtitleColor }]}>
                 Back to Login
               </Text>
             </TouchableOpacity>
@@ -165,6 +174,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
+    textAlign: 'center',
+    letterSpacing: 2,
   },
   button: {
     borderRadius: 8,

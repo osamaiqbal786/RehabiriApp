@@ -33,8 +33,16 @@ export interface SessionFilter {
 export interface User {
   id: string;
   email: string;
+  name: string;
   phoneNumber: string;
   password: string; // Note: This will be hashed in a real app
-  profileImage?: string; // Base64 encoded image or image URI
+  address?: {
+    houseNumber?: string;
+    area?: string;
+    pincode?: string;
+    city?: string;
+    state?: string;
+  };
+  highestQualification?: string;
   createdAt: string;
 }

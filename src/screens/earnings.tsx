@@ -11,6 +11,7 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { ChevronRight, DollarSign } from 'lucide-react-native';
 import { getMonthlyEarnings } from '../../utils/mongoStorage';
+import StatusMessage from '../components/StatusMessage';
 
 interface MonthlyEarning {
   month: string;
@@ -22,6 +23,7 @@ interface MonthlyEarning {
 export default function EarningsScreen() {
   const [monthlyEarnings, setMonthlyEarnings] = useState<MonthlyEarning[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchFailed, setFetchFailed] = useState(false);
   const navigation = useNavigation();
   
   const colorScheme = useColorScheme();
@@ -40,10 +42,12 @@ export default function EarningsScreen() {
   const loadMonthlyEarnings = async () => {
     try {
       setLoading(true);
+      setFetchFailed(false);
       const earnings = await getMonthlyEarnings();
       setMonthlyEarnings(earnings);
     } catch (error) {
       console.error('Error loading monthly earnings:', error);
+      setFetchFailed(true);
     } finally {
       setLoading(false);
     }
@@ -60,7 +64,7 @@ export default function EarningsScreen() {
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
-    const monthIndex = parseInt(month) - 1;
+    const monthIndex = parseInt(month, 10) - 1;
     return `${monthNames[monthIndex]} ${year}`;
   };
 
@@ -69,10 +73,10 @@ export default function EarningsScreen() {
   };
 
   const handleMonthPress = (monthEarning: MonthlyEarning) => {
-    navigation.navigate('EarningsDetail' as never, {
+    (navigation as any).navigate('EarningsDetail', {
       year: monthEarning.year,
       month: monthEarning.month,
-    } as never);
+    });
   };
 
   const renderMonthItem = ({ item }: { item: MonthlyEarning }) => (
@@ -110,6 +114,13 @@ export default function EarningsScreen() {
   if (monthlyEarnings.length === 0) {
     return (
       <View style={[styles.container, styles.centerContent, { backgroundColor: theme.backgroundColor }]}>
+        {/* Show error message if fetch failed */}
+        <StatusMessage 
+          visible={fetchFailed} 
+          type="error" 
+          message="Failed to fetch earnings" 
+        />
+        
         <DollarSign size={64} color={theme.secondaryTextColor} />
         <Text style={[styles.emptyTitle, { color: theme.textColor }]}>No Earnings Yet</Text>
         <Text style={[styles.emptySubtitle, { color: theme.secondaryTextColor }]}>

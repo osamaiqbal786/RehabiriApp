@@ -4,14 +4,13 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Image,
   Modal,
   Animated,
   useColorScheme,
   Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { User, ChevronDown, LogOut, Settings, DollarSign } from 'lucide-react-native';
+import { UserCircle, ChevronDown, LogOut, Settings, DollarSign } from 'lucide-react-native';
 import { useAuth } from '../../utils/AuthContext';
 import { useAppState } from '../hooks/useAppState';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -98,21 +97,11 @@ export default function ProfileDropdown() {
         onPress={toggleDropdown}
         activeOpacity={0.7}
       >
-        {user?.profileImage ? (
-          <Image 
-            source={{ uri: user.profileImage }} 
-            style={styles.profileImage} 
-            resizeMode="contain"
-          />
-        ) : (
-          <View style={[styles.profilePlaceholder, { backgroundColor: theme.primaryColor }]}>
-            <User size={16} color="white" />
-          </View>
-        )}
+        <UserCircle size={32} color={theme.primaryColor} />
         <ChevronDown 
           size={16} 
           color={isDarkMode ? 'white' : 'black'} 
-          style={{ marginLeft: 4, transform: [{ rotate: isOpen ? '180deg' : '0deg' }] }} 
+          style={[styles.chevronIcon, { transform: [{ rotate: isOpen ? '180deg' : '0deg' }] }]} 
         />
       </TouchableOpacity>
 
@@ -147,19 +136,9 @@ export default function ProfileDropdown() {
             ]}
           >
             <View style={styles.userInfo}>
-              {user?.profileImage ? (
-                <Image 
-                  source={{ uri: user.profileImage }} 
-                  style={styles.dropdownProfileImage} 
-                  resizeMode="contain"
-                />
-              ) : (
-                <View style={[styles.dropdownProfilePlaceholder, { backgroundColor: theme.primaryColor }]}>
-                  <User size={24} color="white" />
-                </View>
-              )}
+              <UserCircle size={40} color={theme.primaryColor} />
               <View style={styles.userTextContainer}>
-                <Text style={[styles.userName, { color: theme.textColor }]}>{user?.email}</Text>
+                <Text style={[styles.userName, { color: theme.textColor }]}>{user?.name || user?.email}</Text>
                 <Text style={[styles.userPhone, { color: theme.textColor }]}>{user?.phoneNumber}</Text>
               </View>
             </View>
@@ -210,19 +189,8 @@ const styles = StyleSheet.create({
     padding: 8,
     zIndex: 2000,
   },
-  profileImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-  },
-  profilePlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+  chevronIcon: {
+    marginLeft: 4,
   },
   modalOverlay: {
     flex: 1,
@@ -253,20 +221,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-  },
-  dropdownProfileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-  },
-  dropdownProfilePlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   userTextContainer: {
     marginLeft: 12,

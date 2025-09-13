@@ -10,6 +10,8 @@ import SplashScreen from '../screens/splash';
 import LoginScreen from '../screens/login';
 import SignupScreen from '../screens/signup';
 import ForgotPasswordScreen from '../screens/forgot-password';
+import PasswordResetOTPScreen from '../screens/password-reset-otp';
+import NewPasswordScreen from '../screens/new-password';
 import HomeScreen from '../screens/HomeScreen';
 import PatientsScreen from '../screens/patients';
 import UpcomingScreen from '../screens/upcoming';
@@ -124,6 +126,8 @@ export default function AppNavigator() {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Signup" component={SignupScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        <Stack.Screen name="PasswordResetOTP" component={PasswordResetOTPScreen} />
+        <Stack.Screen name="NewPassword" component={NewPasswordScreen} />
         <Stack.Screen name="MainTabs" component={TabNavigator} />
         <Stack.Screen 
           name="PatientSessions" 
