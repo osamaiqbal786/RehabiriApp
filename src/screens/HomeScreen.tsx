@@ -1,20 +1,30 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, useColorScheme, ActivityIndicator } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, useColorScheme, ActivityIndicator, RefreshControl } from 'react-native';
 import { Plus } from 'lucide-react-native';
 import { Session } from '../../types';
-import { getTodaySessions, updateSession, deleteSession } from '../../utils/mongoStorage';
+import { updateSession, deleteSession } from '../../utils/mongoStorage';
+import { useAppState } from '../hooks/useAppState';
+import { useDataRefresh } from '../hooks/useDataRefresh';
 import SessionCard from '../../components/SessionCard';
 import SessionForm from '../../components/SessionForm';
 import PaymentModal from '../../components/PaymentModal';
+import DataStatusBar from '../components/DataStatusBar';
 
 export default function TodayScreen() {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | undefined>(undefined);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [sessionToComplete, setSessionToComplete] = useState<Session | null>(null);
+
+  // Use global state instead of local state
+  const { 
+    todaySessions, 
+    sessionsLoading, 
+    sessionsError,
+    dispatch 
+  } = useAppState();
+  
+  const { refreshSessions } = useDataRefresh();
 
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
@@ -32,23 +42,8 @@ export default function TodayScreen() {
     separatorColor: isDarkMode ? '#333333' : '#EFEFEF',
   };
 
-  const loadSessions = async () => {
-    try {
-      setLoading(true);
-      const todaySessions = await getTodaySessions();
-      setSessions(todaySessions);
-    } catch (error) {
-      console.error('Error loading today sessions:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      loadSessions();
-    }, [])
-  );
+  // No need for loadSessions - data is managed globally
+  // useFocusEffect is also not needed as data is cached
 
   const handleAddSession = () => {
     setSelectedSession(undefined);
@@ -72,7 +67,8 @@ export default function TodayScreen() {
           onPress: async () => {
             try {
               await deleteSession(sessionId);
-              loadSessions();
+              // Trigger refresh of sessions data
+              dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
             } catch (error) {
               console.error('Error deleting session:', error);
               Alert.alert('Error', 'Failed to delete session');
@@ -91,7 +87,8 @@ export default function TodayScreen() {
       try {
         const updatedSession = { ...session, completed, amount: undefined };
         await updateSession(updatedSession);
-        loadSessions();
+        // Trigger refresh of sessions data
+        dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
       } catch (error) {
         console.error('Error updating session completion status:', error);
         Alert.alert('Error', 'Failed to update session status');
@@ -111,7 +108,8 @@ export default function TodayScreen() {
       await updateSession(updatedSession);
       setPaymentModalVisible(false);
       setSessionToComplete(null);
-      loadSessions();
+      // Trigger refresh of sessions data
+      dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
     } catch (error) {
       console.error('Error updating session with payment:', error);
       Alert.alert('Error', 'Failed to update session payment');
@@ -125,7 +123,8 @@ export default function TodayScreen() {
 
   const handleSaveSession = async (_session: Session) => {
     setModalVisible(false);
-    loadSessions();
+    // Trigger refresh of sessions data
+    dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
   };
 
   return (
@@ -139,12 +138,30 @@ export default function TodayScreen() {
         </TouchableOpacity>
       </View>
 
-      {loading ? (
+      {/* Data Status Bar */}
+      <DataStatusBar 
+        onRefresh={refreshSessions}
+        dataType="sessions"
+      />
+
+      {sessionsLoading ? (
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color={theme.primaryColor} />
-          <Text style={{ color: theme.textColor, marginTop: 10 }}>Loading sessions...</Text>
+          <Text style={[styles.loadingText, { color: theme.textColor }]}>Loading sessions...</Text>
         </View>
-      ) : sessions.length === 0 ? (
+      ) : sessionsError ? (
+        <View style={styles.centerContent}>
+          <Text style={[styles.errorText, { color: theme.errorColor }]}>
+            Error: {sessionsError}
+          </Text>
+          <TouchableOpacity 
+            style={[styles.retryButton, { backgroundColor: theme.primaryColor }]}
+            onPress={refreshSessions}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : todaySessions.length === 0 ? (
         <View style={styles.centerContent}>
           <Text style={[styles.noSessionsText, { color: theme.textColor }]}>No sessions scheduled for today</Text>
           <TouchableOpacity 
@@ -156,7 +173,7 @@ export default function TodayScreen() {
         </View>
       ) : (
         <FlatList
-          data={sessions}
+          data={todaySessions}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <SessionCard
@@ -167,6 +184,13 @@ export default function TodayScreen() {
             />
           )}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={sessionsLoading}
+              onRefresh={refreshSessions}
+              tintColor={theme.primaryColor}
+            />
+          }
         />
       )}
 
@@ -229,6 +253,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loadingText: {
+    marginTop: 10,
+  },
   noSessionsText: {
     fontSize: 16,
     marginBottom: 20,
@@ -239,6 +266,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   addSessionButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  errorText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  retryButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,

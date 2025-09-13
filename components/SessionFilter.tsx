@@ -18,9 +18,10 @@ interface SessionFilterProps {
   onClearFilter: () => void;
   visible?: boolean;
   onClose?: () => void;
+  showCancelledOption?: boolean;
 }
 
-export default function SessionFilterComponent({ patients, onApplyFilter, onClearFilter, visible = false, onClose }: SessionFilterProps) {
+export default function SessionFilterComponent({ patients, onApplyFilter, onClearFilter, visible = false, onClose, showCancelledOption = true }: SessionFilterProps) {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
 
@@ -83,7 +84,11 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
     
     filter.startDate = formatDateForStorage(startDate);
     filter.endDate = formatDateForStorage(endDate);
-    filter.includeCancelled = includeCancelled;
+    
+    // Only include cancelled option if it's available
+    if (showCancelledOption) {
+      filter.includeCancelled = includeCancelled;
+    }
     
     onApplyFilter(filter);
     onClose && onClose();
@@ -209,26 +214,28 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
             {renderDateTimePicker('end')}
           </View>
           
-          {/* Include Cancelled Sessions Checkbox */}
-          <View style={styles.formGroup}>
-            <TouchableOpacity
-              style={styles.checkboxContainer}
-              onPress={() => setIncludeCancelled(!includeCancelled)}
-            >
-              <View style={[
-                styles.checkbox,
-                { 
-                  backgroundColor: includeCancelled ? theme.primaryColor : 'transparent',
-                  borderColor: theme.borderColor
-                }
-              ]}>
-                {includeCancelled && <Text style={[styles.checkmark, { color: 'white' }]}>✓</Text>}
-              </View>
-              <Text style={[styles.checkboxLabel, { color: theme.textColor }]}>
-                Include Cancelled Sessions
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {/* Include Cancelled Sessions Checkbox - Only show if showCancelledOption is true */}
+          {showCancelledOption && (
+            <View style={styles.formGroup}>
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setIncludeCancelled(!includeCancelled)}
+              >
+                <View style={[
+                  styles.checkbox,
+                  { 
+                    backgroundColor: includeCancelled ? theme.primaryColor : 'transparent',
+                    borderColor: theme.borderColor
+                  }
+                ]}>
+                  {includeCancelled && <Text style={[styles.checkmark, { color: 'white' }]}>✓</Text>}
+                </View>
+                <Text style={[styles.checkboxLabel, { color: theme.textColor }]}>
+                  Include Cancelled Sessions
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
           
           {/* Buttons */}
           <View style={styles.buttonContainer}>

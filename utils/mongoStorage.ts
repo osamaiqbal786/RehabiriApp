@@ -179,7 +179,10 @@ export const getPatientsWithActiveSessions = async (patientIds: string[]): Promi
 export const getMonthlyEarnings = async (): Promise<any[]> => {
   try {
     const response = await apiCall('/api/earnings/monthly');
-    return extractData(response, 'monthlyEarnings') || [];
+    console.log('Monthly earnings response:', response);
+    const monthlyEarnings = extractData(response, 'monthlyEarnings') || [];
+    console.log('Extracted monthly earnings:', monthlyEarnings);
+    return monthlyEarnings;
   } catch (error) {
     console.error('Error getting monthly earnings:', error);
     return [];
@@ -189,6 +192,14 @@ export const getMonthlyEarnings = async (): Promise<any[]> => {
 export const getMonthlyEarningsDetail = async (year: number, month: string): Promise<any> => {
   try {
     const response = await apiCall(`/api/earnings/monthly/${year}/${month}`);
+    console.log('Monthly earnings detail response:', response);
+    
+    // Extract data from response structure
+    if (response.data) {
+      return response.data;
+    }
+    
+    // Fallback to direct response if no data wrapper
     return response;
   } catch (error) {
     console.error('Error getting monthly earnings detail:', error);
@@ -237,16 +248,8 @@ export const getSessions = async (): Promise<Session[]> => {
 
 export const getTodaySessions = async (): Promise<Session[]> => {
   try {
-    const response = await apiCall('/api/sessions');
-    
-    // Get today's date in local timezone (not UTC)
-    const now = new Date();
-    const today = now.getFullYear() + '-' + 
-                  String(now.getMonth() + 1).padStart(2, '0') + '-' + 
-                  String(now.getDate()).padStart(2, '0');
-    
-    const sessions = extractData(response, 'sessions') || [];
-    return sessions.filter((session: Session) => session.date === today);
+    const response = await apiCall('/api/sessions/today');
+    return extractData(response, 'sessions') || [];
   } catch (error) {
     console.error('Error getting today sessions:', error);
     return [];

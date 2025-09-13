@@ -445,20 +445,43 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
       <View style={styles.formGroup}>
         <Text style={[styles.label, { color: theme.textColor }]}>Patient</Text>
         {patients.length > 0 ? (
-          <TouchableOpacity 
-            style={[
-              styles.input, 
-              { 
-                backgroundColor: theme.inputBackground,
-                borderColor: errors.patientId ? theme.errorColor : theme.borderColor 
-              }
-            ]}
-            onPress={() => setShowPatientPicker(true)}
-          >
-            <Text style={{ color: theme.textColor }}>
-              {patientId ? getPatientNameById(patientId) : 'Select a patient'}
-            </Text>
-          </TouchableOpacity>
+          existingSession ? (
+            // For existing sessions, show patient name as clickable but don't allow editing
+            <TouchableOpacity 
+              style={[
+                styles.input, 
+                { 
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.borderColor,
+                  opacity: 0.7
+                }
+              ]}
+              onPress={() => {
+                // Could navigate to patient details or show patient info
+                Alert.alert('Patient Info', `Patient: ${getPatientNameById(patientId)}`);
+              }}
+            >
+              <Text style={{ color: theme.textColor }}>
+                {patientId ? getPatientNameById(patientId) : 'No patient selected'}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            // For new sessions, allow patient selection
+            <TouchableOpacity 
+              style={[
+                styles.input, 
+                { 
+                  backgroundColor: theme.inputBackground,
+                  borderColor: errors.patientId ? theme.errorColor : theme.borderColor 
+                }
+              ]}
+              onPress={() => setShowPatientPicker(true)}
+            >
+              <Text style={{ color: theme.textColor }}>
+                {patientId ? getPatientNameById(patientId) : 'Select a patient'}
+              </Text>
+            </TouchableOpacity>
+          )
         ) : (
           <Text style={[styles.noDataText, { color: theme.errorColor }]}>
             No patients available. Please add a patient first.
@@ -606,8 +629,8 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
         </TouchableOpacity>
       </View>
       
-      {/* Update All button - only show when editing existing session AND fields have been changed AND showUpdateAll is true */}
-      {existingSession && isAnyFieldChanged() && showUpdateAll && (
+      {/* Update All button - only show when editing existing session AND fields have been changed AND showUpdateAll is true AND not cancelled */}
+      {existingSession && isAnyFieldChanged() && showUpdateAll && !cancelled && (
         <View style={styles.updateAllContainer}>
           <TouchableOpacity
             style={[

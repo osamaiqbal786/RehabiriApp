@@ -8,26 +8,39 @@ import {
   Alert, 
   useColorScheme,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
-import { useFocusEffect, useRoute } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
 import { Plus, Filter } from 'lucide-react-native';
-import { Session, Patient } from '../../types';
-import { getUpcomingSessions, updateSession, deleteSession, getFilteredSessions, getCurrentUserPatients } from '../../utils/mongoStorage';
+import { Session } from '../../types';
+import { updateSession, deleteSession, getFilteredSessions } from '../../utils/mongoStorage';
+import { useAppState } from '../hooks/useAppState';
+import { useDataRefresh } from '../hooks/useDataRefresh';
 import SessionCard from '../../components/SessionCard';
 import SessionEditModal from '../../components/SessionEditModal';
 import SessionFilter from '../../components/SessionFilter';
 import PaymentModal from '../../components/PaymentModal';
+import DataStatusBar from '../components/DataStatusBar';
 
 export default function UpcomingScreen() {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | undefined>(undefined);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [sessionToComplete, setSessionToComplete] = useState<Session | null>(null);
   const [isFiltered, setIsFiltered] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
+  const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
+
+  // Use global state instead of local state
+  const { 
+    upcomingSessions, 
+    patients,
+    sessionsLoading, 
+    sessionsError,
+    dispatch 
+  } = useAppState();
+  
+  const { refreshSessions } = useDataRefresh();
 
   // Get route params
   const route = useRoute();
@@ -52,121 +65,50 @@ export default function UpcomingScreen() {
     separatorColor: isDarkMode ? '#333333' : '#EFEFEF',
   };
 
-  const loadPatients = async () => {
+  // Handle filtering logic
+  const applyFilters = useCallback(async (filters?: any) => {
     try {
-      const patientsList = await getCurrentUserPatients();
-      setPatients(patientsList);
-    } catch (error) {
-      console.error('Error loading patients:', error);
-    }
-  };
-
-  const loadSessions = useCallback(async (filters?: any) => {
-    try {
-      setLoading(true);
-      
-      // If patientId is provided from route params, filter sessions by patient
       if (patientId && !filters) {
+        // Filter by patient from route params
         setIsFiltered(true);
-        
-        const filter = {
-          patientId: patientId
-        };
-        
-        const filteredSessions = await getFilteredSessions(filter);
-        // Filter to only include upcoming sessions (not completed, not cancelled)
-        const upcomingSessions = filteredSessions.filter(session => !session.completed && !session.cancelled);
-        // Sort sessions: today first, then by date and time
-        const today = new Date().toISOString().split('T')[0];
-        const sortedSessions = upcomingSessions.sort((a, b) => {
-          const isTodayA = a.date === today;
-          const isTodayB = b.date === today;
-          
-          // If one is today and the other isn't, today comes first
-          if (isTodayA && !isTodayB) return -1;
-          if (!isTodayA && isTodayB) return 1;
-          
-          // If both are today or both are not today, sort by date and time
-          const dateA = new Date(`${a.date}T${a.time}`);
-          const dateB = new Date(`${b.date}T${b.time}`);
-          return dateA.getTime() - dateB.getTime();
-        });
-        
-        setSessions(sortedSessions);
-      } 
-      // If filters are provided from the filter component
-      else if (filters) {
+        const filter = { patientId: patientId };
+        const filteredSessionsData = await getFilteredSessions(filter);
+        const upcomingSessionsData = filteredSessionsData.filter(session => !session.completed && !session.cancelled);
+        setFilteredSessions(upcomingSessionsData);
+      } else if (filters) {
+        // Filter by provided filters
         setIsFiltered(true);
-        const filteredSessions = await getFilteredSessions(filters);
-        // Filter to only include upcoming sessions (not completed, not cancelled)
-        const upcomingSessions = filteredSessions.filter(session => !session.completed && !session.cancelled);
-        // Sort sessions: today first, then by date and time
-        const today = new Date().toISOString().split('T')[0];
-        const sortedSessions = upcomingSessions.sort((a, b) => {
-          const isTodayA = a.date === today;
-          const isTodayB = b.date === today;
-          
-          // If one is today and the other isn't, today comes first
-          if (isTodayA && !isTodayB) return -1;
-          if (!isTodayA && isTodayB) return 1;
-          
-          // If both are today or both are not today, sort by date and time
-          const dateA = new Date(`${a.date}T${a.time}`);
-          const dateB = new Date(`${b.date}T${b.time}`);
-          return dateA.getTime() - dateB.getTime();
-        });
-        setSessions(sortedSessions);
-      } 
-      // No filters, show all upcoming sessions
-      else {
+        const filteredSessionsData = await getFilteredSessions(filters);
+        const upcomingSessionsData = filteredSessionsData.filter(session => !session.completed && !session.cancelled);
+        setFilteredSessions(upcomingSessionsData);
+      } else {
+        // No filters, use global state
         setIsFiltered(false);
-        const upcomingSessions = await getUpcomingSessions();
-        // Sort sessions: today first, then by date and time
-        const today = new Date().toISOString().split('T')[0];
-        const sortedSessions = upcomingSessions.sort((a, b) => {
-          const isTodayA = a.date === today;
-          const isTodayB = b.date === today;
-          
-          // If one is today and the other isn't, today comes first
-          if (isTodayA && !isTodayB) return -1;
-          if (!isTodayA && isTodayB) return 1;
-          
-          // If both are today or both are not today, sort by date and time
-          const dateA = new Date(`${a.date}T${a.time}`);
-          const dateB = new Date(`${b.date}T${b.time}`);
-          return dateA.getTime() - dateB.getTime();
-        });
-        setSessions(sortedSessions);
+        setFilteredSessions([]);
       }
     } catch (error) {
-      console.error('Error loading sessions:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error applying filters:', error);
     }
   }, [patientId]);
 
+  // Get the sessions to display (filtered or global)
+  const displaySessions = isFiltered ? filteredSessions : upcomingSessions;
+
   const handleApplyFilter = (filters: any) => {
-    setIsFiltered(true);
     setShowFilter(false); // Hide filter after applying
-    loadSessions(filters);
+    applyFilters(filters);
   };
 
   const handleClearFilter = () => {
     setIsFiltered(false);
     setShowFilter(false); // Hide filter after clearing
-    loadSessions();
+    setFilteredSessions([]);
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      const loadData = async () => {
-        await loadPatients();  // Load patients first
-        loadSessions();        // Then load sessions
-      };
-      
-      loadData();
-    }, [loadSessions])
-  );
+  // Apply filters when component mounts or patientId changes
+  React.useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   const handleAddSession = () => {
     setSelectedSession(undefined);
@@ -190,7 +132,12 @@ export default function UpcomingScreen() {
           onPress: async () => {
             try {
               await deleteSession(sessionId);
-              loadSessions();
+              // Trigger refresh of sessions data
+              dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
+              // Reapply filters if needed
+              if (isFiltered) {
+                applyFilters();
+              }
             } catch (error) {
               console.error('Error deleting session:', error);
               Alert.alert('Error', 'Failed to delete session');
@@ -214,7 +161,12 @@ export default function UpcomingScreen() {
       try {
         const updatedSession = { ...session, completed, amount: undefined };
         await updateSession(updatedSession);
-        loadSessions();
+        // Trigger refresh of sessions data
+        dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
+        // Reapply filters if needed
+        if (isFiltered) {
+          applyFilters();
+        }
       } catch (error) {
         console.error('Error updating session completion status:', error);
         Alert.alert('Error', 'Failed to update session status');
@@ -234,7 +186,12 @@ export default function UpcomingScreen() {
       await updateSession(updatedSession);
       setPaymentModalVisible(false);
       setSessionToComplete(null);
-      loadSessions();
+      // Trigger refresh of sessions data
+      dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
+      // Reapply filters if needed
+      if (isFiltered) {
+        applyFilters();
+      }
     } catch (error) {
       console.error('Error updating session with payment:', error);
       Alert.alert('Error', 'Failed to update session payment');
@@ -248,7 +205,12 @@ export default function UpcomingScreen() {
 
   const handleSaveSession = async (_session: Session) => {
     setModalVisible(false);
-    loadSessions();
+    // Trigger refresh of sessions data
+    dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
+    // Reapply filters if needed
+    if (isFiltered) {
+      applyFilters();
+    }
   };
 
   return (
@@ -286,14 +248,33 @@ export default function UpcomingScreen() {
         onClearFilter={handleClearFilter}
         visible={showFilter}
         onClose={() => setShowFilter(false)}
+        showCancelledOption={false}
       />
 
-      {loading ? (
+      {/* Data Status Bar */}
+      <DataStatusBar 
+        onRefresh={refreshSessions}
+        dataType="sessions"
+      />
+
+      {sessionsLoading ? (
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color={theme.primaryColor} />
-          <Text style={{ color: theme.textColor, marginTop: 10 }}>Loading sessions...</Text>
+          <Text style={[styles.loadingText, { color: theme.textColor }]}>Loading sessions...</Text>
         </View>
-      ) : sessions.length === 0 ? (
+      ) : sessionsError ? (
+        <View style={styles.centerContent}>
+          <Text style={[styles.errorText, { color: theme.errorColor }]}>
+            Error: {sessionsError}
+          </Text>
+          <TouchableOpacity 
+            style={[styles.retryButton, { backgroundColor: theme.primaryColor }]}
+            onPress={refreshSessions}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : displaySessions.length === 0 ? (
         <View style={styles.centerContent}>
           <Text style={[styles.noSessionsText, { color: theme.textColor }]}>No upcoming sessions scheduled</Text>
           <TouchableOpacity 
@@ -305,7 +286,7 @@ export default function UpcomingScreen() {
         </View>
       ) : (
         <FlatList
-          data={sessions}
+          data={displaySessions}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <SessionCard
@@ -318,6 +299,13 @@ export default function UpcomingScreen() {
             />
           )}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={sessionsLoading}
+              onRefresh={refreshSessions}
+              tintColor={theme.primaryColor}
+            />
+          }
         />
       )}
 
@@ -390,6 +378,24 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+  },
+  errorText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  retryButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   noSessionsText: {
     fontSize: 16,

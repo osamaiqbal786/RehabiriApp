@@ -7,25 +7,41 @@ import {
   TouchableOpacity, 
   Alert, 
   useColorScheme,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl
 } from 'react-native';
-import { useFocusEffect, useRoute } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
 import { FileDown, Filter } from 'lucide-react-native';
-import { Session, Patient } from '../../types';
-import { getPastSessions, getCurrentUserPatients, deleteSession, getFilteredSessions, updateSession } from '../../utils/mongoStorage';
+import { Session } from '../../types';
+import { deleteSession, getFilteredSessions, updateSession } from '../../utils/mongoStorage';
+import { useAppState } from '../hooks/useAppState';
+import { useDataRefresh } from '../hooks/useDataRefresh';
 import SessionCard from '../../components/SessionCard';
+import SessionEditModal from '../../components/SessionEditModal';
 import SessionFilter from '../../components/SessionFilter';
 import { exportSessionsToExcel } from '../../utils/exportUtils';
 import PaymentModal from '../../components/PaymentModal';
+import DataStatusBar from '../components/DataStatusBar';
 
 export default function PastScreen() {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isFiltered, setIsFiltered] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [sessionToComplete, setSessionToComplete] = useState<Session | null>(null);
+  const [sessionModalVisible, setSessionModalVisible] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<Session | undefined>(undefined);
+  const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
+
+  // Use global state instead of local state
+  const { 
+    pastSessions, 
+    patients,
+    sessionsLoading, 
+    sessionsError,
+    dispatch 
+  } = useAppState();
+  
+  const { refreshSessions } = useDataRefresh();
 
   // Get route params
   const route = useRoute();
@@ -48,134 +64,42 @@ export default function PastScreen() {
     separatorColor: isDarkMode ? '#333333' : '#EFEFEF',
   };
 
-  const loadPatients = async () => {
+  // Handle filtering logic
+  const applyFilters = useCallback(async (filters?: any) => {
     try {
-      const patientsList = await getCurrentUserPatients();
-      setPatients(patientsList);
-    } catch (error) {
-      console.error('Error loading patients:', error);
-    }
-  };
-
-  const loadSessions = useCallback(async (filters?: any) => {
-    try {
-      setLoading(true);
-      
-      // If patientId is provided from route params, filter sessions by patient
       if (patientId && !filters) {
+        // Filter by patient from route params
         setIsFiltered(true);
-        
-        const filter = {
-          patientId: patientId
-        };
-        
-        const filteredSessions = await getFilteredSessions(filter);
-        // Filter to include past sessions (completed OR cancelled)
-        const pastSessions = filteredSessions.filter(session => 
-          session.completed || session.cancelled
-        );
-        // Sort sessions: today first, then by date ascending (oldest first)
-        const today = new Date().toISOString().split('T')[0];
-        const sortedSessions = pastSessions.sort((a, b) => {
-          const isTodayA = a.date === today;
-          const isTodayB = b.date === today;
-          
-          // If one is today and the other isn't, today comes first
-          if (isTodayA && !isTodayB) return -1;
-          if (!isTodayA && isTodayB) return 1;
-          
-          // If both are today, sort by time descending (latest first)
-          if (isTodayA && isTodayB) {
-            const timeA = new Date(`2000-01-01T${a.time}`);
-            const timeB = new Date(`2000-01-01T${b.time}`);
-            return timeB.getTime() - timeA.getTime();
-          }
-          
-          // If both are not today, sort by date ascending (oldest first)
-          const dateA = new Date(`${a.date}T${a.time}`);
-          const dateB = new Date(`${b.date}T${b.time}`);
-          return dateA.getTime() - dateB.getTime();
-        });
-        
-        setSessions(sortedSessions);
-      } 
-      // If filters are provided from the filter component
-      else if (filters) {
+        const filter = { patientId: patientId };
+        const filteredSessionsData = await getFilteredSessions(filter);
+        setFilteredSessions(filteredSessionsData);
+      } else if (filters) {
+        // Filter by provided filters
         setIsFiltered(true);
-        const filteredSessions = await getFilteredSessions(filters);
-        // Filter to include past sessions (completed OR cancelled)
-        const pastSessions = filteredSessions.filter(session => 
-          session.completed || session.cancelled
-        );
-        // Sort sessions: today first, then by date ascending (oldest first)
-        const today = new Date().toISOString().split('T')[0];
-        const sortedSessions = pastSessions.sort((a, b) => {
-          const isTodayA = a.date === today;
-          const isTodayB = b.date === today;
-          
-          // If one is today and the other isn't, today comes first
-          if (isTodayA && !isTodayB) return -1;
-          if (!isTodayA && isTodayB) return 1;
-          
-          // If both are today, sort by time descending (latest first)
-          if (isTodayA && isTodayB) {
-            const timeA = new Date(`2000-01-01T${a.time}`);
-            const timeB = new Date(`2000-01-01T${b.time}`);
-            return timeB.getTime() - timeA.getTime();
-          }
-          
-          // If both are not today, sort by date ascending (oldest first)
-          const dateA = new Date(`${a.date}T${a.time}`);
-          const dateB = new Date(`${b.date}T${b.time}`);
-          return dateA.getTime() - dateB.getTime();
-        });
-        setSessions(sortedSessions);
-      } 
-      // No filters, show all past sessions
-      else {
+        const filteredSessionsData = await getFilteredSessions(filters);
+        setFilteredSessions(filteredSessionsData);
+      } else {
+        // No filters, use global state
         setIsFiltered(false);
-        const pastSessions = await getPastSessions();
-        // Sort sessions: today first, then by date ascending (oldest first)
-        const today = new Date().toISOString().split('T')[0];
-        const sortedSessions = pastSessions.sort((a, b) => {
-          const isTodayA = a.date === today;
-          const isTodayB = b.date === today;
-          
-          // If one is today and the other isn't, today comes first
-          if (isTodayA && !isTodayB) return -1;
-          if (!isTodayA && isTodayB) return 1;
-          
-          // If both are today, sort by time descending (latest first)
-          if (isTodayA && isTodayB) {
-            const timeA = new Date(`2000-01-01T${a.time}`);
-            const timeB = new Date(`2000-01-01T${b.time}`);
-            return timeB.getTime() - timeA.getTime();
-          }
-          
-          // If both are not today, sort by date ascending (oldest first)
-          const dateA = new Date(`${a.date}T${a.time}`);
-          const dateB = new Date(`${b.date}T${b.time}`);
-          return dateA.getTime() - dateB.getTime();
-        });
-        setSessions(sortedSessions);
+        setFilteredSessions([]);
       }
     } catch (error) {
-      console.error('Error loading sessions:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error applying filters:', error);
     }
   }, [patientId]);
 
+  // Get the sessions to display (filtered or global)
+  const displaySessions = isFiltered ? filteredSessions : pastSessions;
+
   const handleApplyFilter = (filters: any) => {
-    setIsFiltered(true);
     setShowFilter(false); // Hide filter after applying
-    loadSessions(filters);
+    applyFilters(filters);
   };
 
   const handleClearFilter = () => {
     setIsFiltered(false);
     setShowFilter(false); // Hide filter after clearing
-    loadSessions();
+    setFilteredSessions([]);
   };
 
   const handleDeleteSession = (sessionId: string) => {
@@ -190,7 +114,12 @@ export default function PastScreen() {
           onPress: async () => {
             try {
               await deleteSession(sessionId);
-              loadSessions();
+              // Trigger refresh of sessions data
+              dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
+              // Reapply filters if needed
+              if (isFiltered) {
+                applyFilters();
+              }
             } catch (error) {
               console.error('Error deleting session:', error);
               Alert.alert('Error', 'Failed to delete session');
@@ -225,7 +154,12 @@ export default function PastScreen() {
       await updateSession(updatedSession);
       setPaymentModalVisible(false);
       setSessionToComplete(null);
-      loadSessions();
+      // Trigger refresh of sessions data
+      dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
+      // Reapply filters if needed
+      if (isFiltered) {
+        applyFilters();
+      }
     } catch (error) {
       console.error('Error updating session with payment:', error);
       Alert.alert('Error', 'Failed to update session payment');
@@ -237,35 +171,38 @@ export default function PastScreen() {
     setSessionToComplete(null);
   };
 
-  useEffect(() => {
-    loadPatients();
-  }, []);
+  const handleEditSession = (session: Session) => {
+    setSelectedSession(session);
+    setSessionModalVisible(true);
+  };
 
-  useFocusEffect(
-    useCallback(() => {
-      const loadData = async () => {
-        await loadPatients();  // Load patients first
-        loadSessions();        // Then load sessions
-      };
-      
-      loadData();
-    }, [loadSessions])
-  );
+  const handleSaveSession = async (_session: Session) => {
+    setSessionModalVisible(false);
+    setSelectedSession(undefined);
+    // Trigger refresh of sessions data
+    dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
+    // Reapply filters if needed
+    if (isFiltered) {
+      applyFilters();
+    }
+  };
+
+  // Apply filters when component mounts or patientId changes
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   const handleExportSessions = async () => {
     try {
-      setLoading(true);
-      
-      if (sessions.length === 0) {
+      if (displaySessions.length === 0) {
         Alert.alert('No Data', 'There are no past sessions to export');
-        setLoading(false);
         return;
       }
       
       // For all sessions, use "All Patients" as the name
       const exportName = "All Patients";
       
-      const success = await exportSessionsToExcel(sessions, exportName);
+      const success = await exportSessionsToExcel(displaySessions, exportName);
       if (success) {
         Alert.alert('Success', 'Sessions exported successfully');
       } else {
@@ -274,8 +211,6 @@ export default function PastScreen() {
     } catch (error) {
       console.error('Error exporting sessions:', error);
       Alert.alert('Error', 'Failed to export sessions');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -315,37 +250,69 @@ export default function PastScreen() {
         onClearFilter={handleClearFilter}
         visible={showFilter}
         onClose={() => setShowFilter(false)}
+        showCancelledOption={true}
       />
 
-      {loading ? (
+      {/* Data Status Bar */}
+      <DataStatusBar 
+        onRefresh={refreshSessions}
+        dataType="sessions"
+      />
+
+      {sessionsLoading ? (
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color={theme.primaryColor} />
-          <Text style={{ color: theme.textColor, marginTop: 10 }}>Loading sessions...</Text>
+          <Text style={[styles.loadingText, { color: theme.textColor }]}>Loading sessions...</Text>
         </View>
-      ) : sessions.length === 0 ? (
+      ) : sessionsError ? (
+        <View style={styles.centerContent}>
+          <Text style={[styles.errorText, { color: theme.errorColor }]}>
+            Error: {sessionsError}
+          </Text>
+          <TouchableOpacity 
+            style={[styles.retryButton, { backgroundColor: theme.primaryColor }]}
+            onPress={refreshSessions}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : displaySessions.length === 0 ? (
         <View style={styles.centerContent}>
           <Text style={[styles.noSessionsText, { color: theme.textColor }]}>No past sessions found</Text>
         </View>
       ) : (
         <FlatList
-          data={sessions}
+          data={displaySessions}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <SessionCard
-              session={item}
-              onEdit={() => Alert.alert('Info', 'Editing past sessions is not allowed')}
-              onDelete={(sessionId) => handleDeleteSession(sessionId)} 
-              onToggleComplete={(session, completed) => {
-                // Only allow marking incomplete sessions as complete
-                if (session.completed && !completed) {
-                  Alert.alert('Info', 'Completed sessions cannot be marked as incomplete. You can delete the session if needed.');
-                } else if (!session.completed && completed) {
-                  handleToggleComplete(session, completed);
-                }
-              }}              
-            />
-          )}
+          renderItem={({ item }) => {
+            // Allow editing only for unmarked sessions (not completed and not cancelled)
+            const allowEdit = !item.completed && !item.cancelled;
+            
+            return (
+              <SessionCard
+                session={item}
+                onEdit={allowEdit ? (session) => handleEditSession(session) : () => Alert.alert('Info', 'Cannot edit completed or cancelled sessions')}
+                onDelete={(sessionId) => handleDeleteSession(sessionId)} 
+                onToggleComplete={(session, completed) => {
+                  // Only allow marking incomplete sessions as complete
+                  if (session.completed && !completed) {
+                    Alert.alert('Info', 'Completed sessions cannot be marked as incomplete. You can delete the session if needed.');
+                  } else if (!session.completed && completed) {
+                    handleToggleComplete(session, completed);
+                  }
+                }}
+                allowEdit={allowEdit}
+              />
+            );
+          }}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={sessionsLoading}
+              onRefresh={refreshSessions}
+              tintColor={theme.primaryColor}
+            />
+          }
         />
       )}
 
@@ -358,6 +325,17 @@ export default function PastScreen() {
           onCancel={handlePaymentCancel}
         />
       )}
+
+      {/* Session Edit Modal */}
+      <SessionEditModal
+        visible={sessionModalVisible}
+        session={selectedSession}
+        onClose={() => {
+          setSessionModalVisible(false);
+          setSelectedSession(undefined);
+        }}
+        onSave={handleSaveSession}
+      />
     </View>
   );
 }
@@ -420,6 +398,24 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 15,
     paddingBottom: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+  },
+  errorText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  retryButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   noSessionsText: {
     fontSize: 16,

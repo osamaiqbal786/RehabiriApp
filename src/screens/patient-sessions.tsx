@@ -22,7 +22,8 @@ import { FileDown } from 'lucide-react-native';
 export default function PatientSessionsScreen() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showPastSessions, setShowPastSessions] = useState(false);
+  const [showCompletedSessions, setShowCompletedSessions] = useState(false);
+  const [hideCancelled, setHideCancelled] = useState(false);
   const [patientName, setPatientName] = useState('');
   const [sessionModalVisible, setSessionModalVisible] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | undefined>(undefined);
@@ -69,17 +70,22 @@ export default function PatientSessionsScreen() {
       // Use the new getPatientSessions function which filters by both patientId and userId
       const allSessions = await getPatientSessions(patientId);
       
-      // Filter based on the selected tab (past or upcoming)
-      const filteredByStatus = allSessions.filter(session => 
-        showPastSessions ? (session.completed || session.cancelled) : (!session.completed && !session.cancelled)
+      // Filter based on the selected tab (completed or upcoming)
+      let filteredByStatus = allSessions.filter(session => 
+        showCompletedSessions ? (session.completed || session.cancelled) : (!session.completed && !session.cancelled)
       );
+      
+      // If showing completed sessions and hide cancelled is checked, filter out cancelled sessions
+      if (showCompletedSessions && hideCancelled) {
+        filteredByStatus = filteredByStatus.filter(session => !session.cancelled);
+      }
       
       // Sort sessions by date and time
       const sortedSessions = filteredByStatus.sort((a, b) => {
         const dateA = new Date(`${a.date}T${a.time}`);
         const dateB = new Date(`${b.date}T${b.time}`);
-        return showPastSessions 
-          ? dateB.getTime() - dateA.getTime() // Descending for past
+        return showCompletedSessions 
+          ? dateA.getTime() - dateB.getTime() // Ascending for completed (oldest first)
           : dateA.getTime() - dateB.getTime(); // Ascending for upcoming
       });
       
@@ -89,7 +95,7 @@ export default function PatientSessionsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [patientId, showPastSessions]);
+  }, [patientId, showCompletedSessions, hideCancelled]);
 
   useEffect(() => {
     loadPatientInfo();
@@ -106,7 +112,7 @@ export default function PatientSessionsScreen() {
       setLoading(true);
       
       if (sessions.length === 0) {
-        Alert.alert('No Data', `There are no ${showPastSessions ? 'past' : 'upcoming'} sessions to export`);
+        Alert.alert('No Data', `There are no ${showCompletedSessions ? 'completed' : 'upcoming'} sessions to export`);
         setLoading(false);
         return;
       }
@@ -172,14 +178,14 @@ export default function PatientSessionsScreen() {
       onDelete={handleDeleteSession}
       onToggleComplete={handleToggleComplete}
       showCompleteToggle={false}
-      allowEdit={!showPastSessions} // Allow edit only for upcoming sessions
+      allowEdit={!showCompletedSessions} // Allow edit only for upcoming sessions
     />
   );
 
   const renderEmptyState = () => (
     <View style={styles.emptyStateContainer}>
       <Text style={[styles.emptyStateText, { color: theme.textColor }]}>
-        No {showPastSessions ? 'past' : 'upcoming'} sessions found for {patientName}
+        No {showCompletedSessions ? 'completed' : 'upcoming'} sessions found for {patientName}
       </Text>
     </View>
   );
@@ -215,8 +221,8 @@ export default function PatientSessionsScreen() {
       <View style={styles.content}>
         {/* Tab Navigation */}
         <View style={styles.tabContainer}>
-          {renderTabButton('Upcoming', !showPastSessions, () => setShowPastSessions(false))}
-          {renderTabButton('Past', showPastSessions, () => setShowPastSessions(true))}
+          {renderTabButton('Upcoming', !showCompletedSessions, () => setShowCompletedSessions(false))}
+          {renderTabButton('Completed', showCompletedSessions, () => setShowCompletedSessions(true))}
         </View>
 
         {/* Export Button */}
@@ -249,6 +255,30 @@ export default function PatientSessionsScreen() {
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
           />
+        )}
+
+        {/* Hide Cancelled Checkbox - Only show on Completed tab, at bottom */}
+        {showCompletedSessions && (
+          <View style={[styles.bottomCheckboxContainer, { backgroundColor: theme.cardBackground, borderColor: theme.borderColor }]}>
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setHideCancelled(!hideCancelled)}
+              activeOpacity={0.7}
+            >
+              <View style={[
+                styles.checkbox,
+                { 
+                  backgroundColor: hideCancelled ? theme.primaryColor : 'transparent',
+                  borderColor: hideCancelled ? theme.primaryColor : theme.borderColor
+                }
+              ]}>
+                {hideCancelled && <Text style={[styles.checkmark, { color: 'white' }]}>✓</Text>}
+              </View>
+              <Text style={[styles.checkboxLabel, { color: theme.textColor }]}>
+                Hide Cancelled Sessions
+              </Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -332,5 +362,40 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 20,
+  },
+  bottomCheckboxContainer: {
+    marginTop: 15,
+    marginBottom: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderRadius: 4,
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkmark: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    flex: 1,
   },
 });

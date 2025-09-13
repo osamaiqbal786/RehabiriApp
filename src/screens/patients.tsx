@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -9,25 +9,37 @@ import {
   Modal, 
   useColorScheme,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Plus } from 'lucide-react-native';
 import { Patient } from '../../types';
-import { getCurrentUserPatients, deletePatient, getPatientsWithActiveSessions, closeAllUpcomingSessions } from '../../utils/mongoStorage';
+import { deletePatient, getPatientsWithActiveSessions, closeAllUpcomingSessions } from '../../utils/mongoStorage';
+import { useAppState } from '../hooks/useAppState';
+import { useDataRefresh } from '../hooks/useDataRefresh';
 import PatientForm from '../../components/PatientForm';
 import PatientCard from '../../components/PatientCard';
 import SessionForm from '../../components/SessionForm';
+import DataStatusBar from '../components/DataStatusBar';
 
 export default function PatientsScreen() {
-  const [patients, setPatients] = useState<Patient[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
-  const [loading, setLoading] = useState(true);
   const [patientModalVisible, setPatientModalVisible] = useState(false);
   const [sessionModalVisible, setSessionModalVisible] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | undefined>(undefined);
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [searchQuery, _setSearchQuery] = useState('');
   const [patientsWithActiveSessions, setPatientsWithActiveSessions] = useState<Set<string>>(new Set());
+
+  // Use global state instead of local state
+  const { 
+    patients, 
+    patientsLoading, 
+    patientsError,
+    dispatch 
+  } = useAppState();
+  
+  const { refreshPatients } = useDataRefresh();
 
   // Get the device color scheme
   const colorScheme = useColorScheme();
@@ -48,7 +60,7 @@ export default function PatientsScreen() {
 
   const navigation = useNavigation();
 
-  const checkActiveSessions = async (patientIds: string[]) => {
+  const checkActiveSessions = useCallback(async (patientIds: string[]) => {
     try {
       // Use the new efficient endpoint to get all patients with active sessions
       const activePatientIds = await getPatientsWithActiveSessions(patientIds);
@@ -57,30 +69,17 @@ export default function PatientsScreen() {
     } catch (error) {
       console.error('Error checking active sessions:', error);
     }
-  };
-
-  const loadPatients = useCallback(async () => {
-    try {
-      setLoading(true);
-      const patientsList = await getCurrentUserPatients();
-      setPatients(patientsList);
-      setFilteredPatients(patientsList);
-      
-      // Check for active sessions for all patients
-      const patientIds = patientsList.map(patient => patient.id).filter(Boolean);
-      await checkActiveSessions(patientIds);
-    } catch (error) {
-      console.error('Error loading patients:', error);
-    } finally {
-      setLoading(false);
-    }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadPatients();
-    }, [loadPatients])
-  );
+  // Update filtered patients when global patients change
+  useEffect(() => {
+    setFilteredPatients(patients);
+    // Check for active sessions for all patients
+    const patientIds = patients.map(patient => patient.id).filter(Boolean);
+    if (patientIds.length > 0) {
+      checkActiveSessions(patientIds);
+    }
+  }, [patients, checkActiveSessions]);
 
   const handleAddPatient = () => {
     setSelectedPatient(undefined);
@@ -104,7 +103,9 @@ export default function PatientsScreen() {
           onPress: async () => {
             try {
               await deletePatient(patientId);
-              loadPatients();
+              // Trigger refresh of both patients and sessions data
+              dispatch({ type: 'TRIGGER_PATIENTS_REFRESH' });
+              dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
             } catch (error) {
               console.error('Error deleting patient:', error);
               Alert.alert('Error', 'Failed to delete patient');
@@ -152,8 +153,9 @@ export default function PatientsScreen() {
             try {
               await closeAllUpcomingSessions(patientId);
               Alert.alert('Success', 'All upcoming sessions have been marked as cancelled');
-              // Refresh patients and active sessions status
-              await loadPatients();
+              // Trigger refresh of both patients and sessions data
+              dispatch({ type: 'TRIGGER_PATIENTS_REFRESH' });
+              dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
             } catch (error) {
               console.error('Error closing sessions:', error);
               Alert.alert('Error', 'Failed to close sessions');
@@ -166,13 +168,15 @@ export default function PatientsScreen() {
 
   const handleSavePatient = async (_patient: Patient) => {
     setPatientModalVisible(false);
-    loadPatients();
+    // Trigger refresh of patients data
+    dispatch({ type: 'TRIGGER_PATIENTS_REFRESH' });
   };
 
   const handleSaveSession = async () => {
     setSessionModalVisible(false);
-    // Refresh patients and check for active sessions after creating a new session
-    await loadPatients();
+    // Trigger refresh of both patients and sessions data
+    dispatch({ type: 'TRIGGER_PATIENTS_REFRESH' });
+    dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
   };
 
   return (
@@ -186,10 +190,28 @@ export default function PatientsScreen() {
         </TouchableOpacity>
       </View>
 
-      {loading ? (
+      {/* Data Status Bar */}
+      <DataStatusBar 
+        onRefresh={refreshPatients}
+        dataType="patients"
+      />
+
+      {patientsLoading ? (
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color={theme.primaryColor} />
-          <Text style={{ color: theme.textColor, marginTop: 10 }}>Loading patients...</Text>
+          <Text style={[styles.loadingText, { color: theme.textColor }]}>Loading patients...</Text>
+        </View>
+      ) : patientsError ? (
+        <View style={styles.centerContent}>
+          <Text style={[styles.errorText, { color: theme.errorColor }]}>
+            Error: {patientsError}
+          </Text>
+          <TouchableOpacity 
+            style={[styles.retryButton, { backgroundColor: theme.primaryColor }]}
+            onPress={refreshPatients}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
         </View>
       ) : !filteredPatients || filteredPatients.length === 0 ? (
         <View style={styles.centerContent}>
@@ -231,6 +253,13 @@ export default function PatientsScreen() {
           removeClippedSubviews={true}
           scrollEnabled={true}
           bounces={true}
+          refreshControl={
+            <RefreshControl
+              refreshing={patientsLoading}
+              onRefresh={refreshPatients}
+              tintColor={theme.primaryColor}
+            />
+          }
         />
       )}
 
@@ -326,6 +355,24 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+  },
+  errorText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  retryButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   noPatientsText: {
     fontSize: 16,

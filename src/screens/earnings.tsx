@@ -130,7 +130,12 @@ export default function EarningsScreen() {
 
       <FlatList
         data={monthlyEarnings}
-        keyExtractor={(item) => `${item.year}-${item.month}`}
+        keyExtractor={(item, index) => {
+          if (item.year && item.month) {
+            return `${item.year}-${item.month}`;
+          }
+          return `month-${index}`;
+        }}
         renderItem={renderMonthItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}

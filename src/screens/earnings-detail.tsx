@@ -55,6 +55,7 @@ export default function EarningsDetailScreen() {
         try {
           setLoading(true);
           const detail = await getMonthlyEarningsDetail(year, month);
+          console.log('Earnings detail received:', detail);
           setEarningsDetail(detail);
           
           // Show celebration animation after a short delay
@@ -81,7 +82,10 @@ export default function EarningsDetailScreen() {
     return `${monthNames[monthIndex]} ${yearNum}`;
   };
 
-  const formatEarnings = (amount: number): string => {
+  const formatEarnings = (amount: number | undefined): string => {
+    if (amount === undefined || amount === null) {
+      return '₹0.00';
+    }
     return `₹${amount.toFixed(2)}`;
   };
 
@@ -173,7 +177,7 @@ export default function EarningsDetailScreen() {
           {formatEarnings(earningsDetail.totalEarnings)}
         </Text>
         <Text style={[styles.sessionCount, { color: theme.secondaryTextColor }]}>
-          {earningsDetail.sessionCount} completed session{earningsDetail.sessionCount !== 1 ? 's' : ''}
+          {earningsDetail.sessionCount || 0} completed session{(earningsDetail.sessionCount || 0) !== 1 ? 's' : ''}
         </Text>
       </View>
 
@@ -181,7 +185,7 @@ export default function EarningsDetailScreen() {
       <View style={styles.sessionsSection}>
         <Text style={[styles.sectionTitle, { color: theme.textColor }]}>Sessions</Text>
         <FlatList
-          data={earningsDetail.sessions}
+          data={earningsDetail.sessions || []}
           keyExtractor={(item) => item.id}
           renderItem={renderSessionItem}
           contentContainerStyle={styles.sessionsList}
