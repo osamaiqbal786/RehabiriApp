@@ -16,6 +16,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../utils/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import OTPVerification from '../../components/OTPVerification';
+import { sendOTP } from '../../utils/mongoAuth';
 
 export default function SignupScreen() {
   const [email, setEmail] = useState('');
@@ -28,6 +30,8 @@ export default function SignupScreen() {
     password?: string;
     confirmPassword?: string;
   }>({});
+  const [showOTPVerification, setShowOTPVerification] = useState(false);
+  const [isSendingOTP, setIsSendingOTP] = useState(false);
   
   const { register, isLoading } = useAuth();
   const navigation = useNavigation();
@@ -86,20 +90,55 @@ export default function SignupScreen() {
     return isValid;
   };
 
-  const handleSignup = async () => {
+  const handleSendOTP = async () => {
     if (!validateForm()) return;
 
+    setIsSendingOTP(true);
     try {
+      console.log('Sending OTP request for email:', email);
+      
+      const response = await sendOTP(email);
+      console.log('OTP response:', response);
+
+      setShowOTPVerification(true);
+      Alert.alert('OTP Sent', 'Please check your email for the verification code.');
+    } catch (error) {
+      console.error('OTP send error:', error);
+      Alert.alert('Error', (error as Error).message || 'Failed to send OTP');
+    } finally {
+      setIsSendingOTP(false);
+    }
+  };
+
+  const handleOTPVerificationSuccess = async () => {
+    try {
+      // Create user account after OTP verification
       await register({ email, phoneNumber, password });
-      navigation.navigate('Login' as never);
+      // User is automatically signed in after registration
+      navigation.navigate('MainTabs' as never);
     } catch (error) {
       Alert.alert('Signup Failed', 'Failed to create account. Please try again.');
     }
   };
 
+  const handleBackFromOTP = () => {
+    setShowOTPVerification(false);
+  };
+
   const navigateToLogin = () => {
     navigation.navigate('Login' as never);
   };
+
+  // Show OTP verification if needed
+  if (showOTPVerification) {
+    return (
+      <OTPVerification
+        email={email}
+        onVerificationSuccess={handleOTPVerificationSuccess}
+        onBack={handleBackFromOTP}
+      />
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
@@ -202,14 +241,14 @@ export default function SignupScreen() {
 
             <TouchableOpacity
               style={[styles.button, { backgroundColor: theme.primaryColor }]}
-              onPress={handleSignup}
-              disabled={isLoading}
+              onPress={handleSendOTP}
+              disabled={isLoading || isSendingOTP}
               activeOpacity={0.7}
             >
-              {isLoading ? (
+              {isLoading || isSendingOTP ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>Sign Up</Text>
+                <Text style={styles.buttonText}>Send Verification Code</Text>
               )}
             </TouchableOpacity>
 

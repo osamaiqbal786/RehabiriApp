@@ -19,14 +19,11 @@ import { useDataRefresh } from '../hooks/useDataRefresh';
 import SessionCard from '../../components/SessionCard';
 import SessionEditModal from '../../components/SessionEditModal';
 import SessionFilter from '../../components/SessionFilter';
-import PaymentModal from '../../components/PaymentModal';
 import DataStatusBar from '../components/DataStatusBar';
 
 export default function UpcomingScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | undefined>(undefined);
-  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
-  const [sessionToComplete, setSessionToComplete] = useState<Session | null>(null);
   const [isFiltered, setIsFiltered] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
@@ -174,34 +171,6 @@ export default function UpcomingScreen() {
     }
   };
 
-  const handlePaymentConfirm = async (amount: number) => {
-    if (!sessionToComplete) return;
-    
-    try {
-      const updatedSession = { 
-        ...sessionToComplete, 
-        completed: true,
-        amount: amount
-      };
-      await updateSession(updatedSession);
-      setPaymentModalVisible(false);
-      setSessionToComplete(null);
-      // Trigger refresh of sessions data
-      dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
-      // Reapply filters if needed
-      if (isFiltered) {
-        applyFilters();
-      }
-    } catch (error) {
-      console.error('Error updating session with payment:', error);
-      Alert.alert('Error', 'Failed to update session payment');
-    }
-  };
-
-  const handlePaymentCancel = () => {
-    setPaymentModalVisible(false);
-    setSessionToComplete(null);
-  };
 
   const handleSaveSession = async (_session: Session) => {
     setModalVisible(false);
@@ -316,15 +285,6 @@ export default function UpcomingScreen() {
         onSave={handleSaveSession}
       />
 
-      {/* Payment Modal */}
-      {sessionToComplete && (
-        <PaymentModal
-          visible={paymentModalVisible}
-          session={sessionToComplete}
-          onConfirm={handlePaymentConfirm}
-          onCancel={handlePaymentCancel}
-        />
-      )}
     </View>
   );
 }

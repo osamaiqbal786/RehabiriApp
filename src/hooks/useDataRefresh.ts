@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { useAppState } from './useAppState';
+import { useAuth } from '../../utils/AuthContext';
 import { 
   getCurrentUserPatients, 
   getTodaySessions, 
@@ -8,6 +9,7 @@ import {
 } from '../../utils/mongoStorage';
 
 export function useDataRefresh() {
+  const { user } = useAuth();
   const { 
     dispatch, 
     shouldRefreshPatients, 
@@ -91,28 +93,28 @@ export function useDataRefresh() {
     dispatch({ type: 'CLEAR_ERRORS' });
   }, [dispatch]);
 
-  // Auto-fetch when refresh triggers are set
+  // Auto-fetch when refresh triggers are set - only if user is authenticated
   useEffect(() => {
-    if (shouldRefreshPatients) {
+    if (user && shouldRefreshPatients) {
       fetchPatients();
     }
-  }, [shouldRefreshPatients, fetchPatients]);
+  }, [user, shouldRefreshPatients, fetchPatients]);
 
   useEffect(() => {
-    if (shouldRefreshSessions) {
+    if (user && shouldRefreshSessions) {
       fetchSessions();
     }
-  }, [shouldRefreshSessions, fetchSessions]);
+  }, [user, shouldRefreshSessions, fetchSessions]);
 
-  // Initial data load
+  // Initial data load - only if user is authenticated
   useEffect(() => {
-    if (!patientsLastFetched) {
+    if (user && !patientsLastFetched) {
       fetchPatients();
     }
-    if (!sessionsLastFetched) {
+    if (user && !sessionsLastFetched) {
       fetchSessions();
     }
-  }, [patientsLastFetched, sessionsLastFetched, fetchPatients, fetchSessions]);
+  }, [user, patientsLastFetched, sessionsLastFetched, fetchPatients, fetchSessions]);
 
   return {
     fetchPatients,

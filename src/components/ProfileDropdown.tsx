@@ -13,10 +13,12 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { User, ChevronDown, LogOut, Settings, DollarSign } from 'lucide-react-native';
 import { useAuth } from '../../utils/AuthContext';
+import { useAppState } from '../hooks/useAppState';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProfileDropdown() {
   const { user, logout } = useAuth();
+  const { dispatch } = useAppState();
   const navigation = useNavigation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownAnimation = useRef(new Animated.Value(0)).current;
@@ -53,7 +55,13 @@ export default function ProfileDropdown() {
   const handleLogout = async () => {
     try {
       setIsOpen(false); // Close dropdown first
+      
+      // Logout first to clear user state
       await logout();
+      
+      // Then clear all app data
+      dispatch({ type: 'CLEAR_ALL_DATA' });
+      
       navigation.navigate('Login' as never);
     } catch (error) {
       console.error('Logout error:', error);

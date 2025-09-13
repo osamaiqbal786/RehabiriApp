@@ -32,7 +32,8 @@ export type AppAction =
   | { type: 'SET_GLOBAL_LOADING'; payload: boolean }
   | { type: 'TRIGGER_PATIENTS_REFRESH' }
   | { type: 'TRIGGER_SESSIONS_REFRESH' }
-  | { type: 'CLEAR_ERRORS' };
+  | { type: 'CLEAR_ERRORS' }
+  | { type: 'CLEAR_ALL_DATA' };
 
 const initialState: AppState = {
   patients: {
@@ -164,6 +165,15 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         sessions: {
           ...state.sessions,
           error: null,
+        },
+      };
+
+    case 'CLEAR_ALL_DATA':
+      return {
+        ...initialState,
+        refreshTriggers: {
+          patients: false,
+          sessions: false,
         },
       };
 

@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   useColorScheme,
 } from 'react-native';
-import { API_BASE_URL } from '../utils/mongoStorage';
+import { verifyPasswordResetOTP } from '../utils/mongoAuth';
 
 interface PasswordResetOTPProps {
   email: string;
@@ -51,24 +51,12 @@ export default function PasswordResetOTP({ email, onVerificationSuccess, onBack 
     try {
       // For password reset, we verify the OTP exists and is valid
       // We don't mark it as used yet - that will happen during password reset
-      const response = await fetch(`${API_BASE_URL}/otp/verify-password-reset`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, otp }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Call the success callback directly without Alert
-        onVerificationSuccess(otp);
-      } else {
-        setError(data.message || 'Invalid OTP');
-      }
+      await verifyPasswordResetOTP(email, otp);
+      
+      // Call the success callback directly without Alert
+      onVerificationSuccess(otp);
     } catch (error) {
-      setError('Network error. Please try again.');
+      setError((error as Error).message || 'Invalid OTP');
     } finally {
       setIsLoading(false);
     }

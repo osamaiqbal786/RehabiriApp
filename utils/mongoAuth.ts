@@ -163,6 +163,49 @@ export const resetPassword = async (email: string, newPassword: string): Promise
   }
 };
 
+// OTP functions
+export const sendOTP = async (email: string): Promise<{ message: string }> => {
+  try {
+    const response = await apiCall('/api/otp/send', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    throw error;
+  }
+};
+
+export const verifyOTP = async (email: string, otp: string): Promise<{ message: string }> => {
+  try {
+    const response = await apiCall('/api/otp/verify', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    throw error;
+  }
+};
+
+export const verifyPasswordResetOTP = async (email: string, otp: string): Promise<{ message: string }> => {
+  try {
+    const response = await apiCall('/api/otp/verify-password-reset', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Error verifying password reset OTP:', error);
+    throw error;
+  }
+};
+
 // Check if user is authenticated
 export const isAuthenticated = async (): Promise<boolean> => {
   const token = await getStoredToken();

@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   useColorScheme,
 } from 'react-native';
-import { API_BASE_URL } from '../utils/mongoStorage';
+import { sendOTP, verifyOTP } from '../utils/mongoAuth';
 
 interface OTPVerificationProps {
   email: string;
@@ -51,35 +51,22 @@ export default function OTPVerification({ email, onVerificationSuccess, onBack }
   //   sendOTP();
   // }, []);
 
-  const sendOTP = async () => {
+  const handleSendOTP = async () => {
     setIsSendingOTP(true);
     setError('');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/otp/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        Alert.alert('OTP Sent', 'Please check your email for the verification code.');
-        setCountdown(60); // 60 seconds cooldown
-      } else {
-        setError(data.message || 'Failed to send OTP');
-      }
+      const response = await sendOTP(email);
+      Alert.alert('OTP Sent', 'Please check your email for the verification code.');
+      setCountdown(60); // 60 seconds cooldown
     } catch (error) {
-      setError('Network error. Please try again.');
+      setError((error as Error).message || 'Failed to send OTP');
     } finally {
       setIsSendingOTP(false);
     }
   };
 
-  const verifyOTP = async () => {
+  const handleVerifyOTP = async () => {
     if (!otp.trim()) {
       setError('Please enter the OTP');
       return;
@@ -89,26 +76,13 @@ export default function OTPVerification({ email, onVerificationSuccess, onBack }
     setError('');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/otp/verify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, otp }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        console.log('✅ OTP verification API call successful');
-        // Call the success callback directly
-        onVerificationSuccess();
-      } else {
-        console.log('❌ OTP verification failed:', data.message);
-        setError(data.message || 'Invalid OTP');
-      }
+      const response = await verifyOTP(email, otp);
+      console.log('✅ OTP verification successful');
+      // Call the success callback directly
+      onVerificationSuccess();
     } catch (error) {
-      setError('Network error. Please try again.');
+      console.log('❌ OTP verification failed:', (error as Error).message);
+      setError((error as Error).message || 'Invalid OTP');
     } finally {
       setIsLoading(false);
     }
@@ -153,7 +127,7 @@ export default function OTPVerification({ email, onVerificationSuccess, onBack }
             { backgroundColor: theme.primaryColor },
             isLoading && styles.disabledButton
           ]}
-          onPress={verifyOTP}
+          onPress={handleVerifyOTP}
           disabled={isLoading}
         >
           {isLoading ? (
@@ -168,7 +142,7 @@ export default function OTPVerification({ email, onVerificationSuccess, onBack }
             Didn't receive the code?
           </Text>
           <TouchableOpacity
-            onPress={sendOTP}
+            onPress={handleSendOTP}
             disabled={countdown > 0 || isSendingOTP}
             style={countdown > 0 && styles.disabledLink}
           >

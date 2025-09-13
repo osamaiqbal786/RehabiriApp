@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -7,7 +7,8 @@ import {
   StyleSheet, 
   Modal, 
   useColorScheme,
-  Platform
+  Platform,
+  ActivityIndicator
 } from 'react-native';
 import { Session } from '../types';
 
@@ -16,11 +17,20 @@ interface PaymentModalProps {
   session: Session;
   onConfirm: (amount: number) => void;
   onCancel: () => void;
+  isLoading?: boolean;
 }
 
-export default function PaymentModal({ visible, session, onConfirm, onCancel }: PaymentModalProps) {
+export default function PaymentModal({ visible, session, onConfirm, onCancel, isLoading = false }: PaymentModalProps) {
   const [amount, setAmount] = useState(session.amount?.toString() || '');
   const [error, setError] = useState('');
+  
+  // Clear amount when modal closes
+  useEffect(() => {
+    if (!visible) {
+      setAmount('');
+      setError('');
+    }
+  }, [visible]);
   
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
@@ -50,13 +60,11 @@ export default function PaymentModal({ visible, session, onConfirm, onCancel }: 
     }
 
     onConfirm(numAmount);
-    setAmount('');
+    // Don't clear amount here - let it stay visible until modal closes
     setError('');
   };
 
   const handleCancel = () => {
-    setAmount('');
-    setError('');
     onCancel();
   };
 
@@ -87,7 +95,8 @@ export default function PaymentModal({ visible, session, onConfirm, onCancel }: 
                 { 
                   backgroundColor: isDarkMode ? '#333333' : 'white',
                   borderColor: error ? theme.errorColor : theme.borderColor,
-                  color: theme.textColor
+                  color: theme.textColor,
+                  opacity: isLoading ? 0.6 : 1
                 }
               ]}
               value={amount}
@@ -96,23 +105,41 @@ export default function PaymentModal({ visible, session, onConfirm, onCancel }: 
               placeholderTextColor={theme.placeholderColor}
               keyboardType="decimal-pad"
               autoFocus={true}
+              editable={!isLoading}
             />
             {error ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{error}</Text> : null}
           </View>
           
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={[styles.button, styles.cancelButton, { backgroundColor: isDarkMode ? '#444444' : '#E5E5EA' }]}
+              style={[
+                styles.button, 
+                styles.cancelButton, 
+                { 
+                  backgroundColor: isDarkMode ? '#444444' : '#E5E5EA',
+                  opacity: isLoading ? 0.6 : 1
+                }
+              ]}
               onPress={handleCancel}
+              disabled={isLoading}
             >
               <Text style={[styles.buttonText, { color: theme.textColor }]}>Cancel</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
-              style={[styles.button, styles.confirmButton, { backgroundColor: theme.primaryColor }]}
+              style={[
+                styles.button, 
+                styles.confirmButton, 
+                { backgroundColor: isLoading ? theme.primaryColor + '80' : theme.primaryColor }
+              ]}
               onPress={handleConfirm}
+              disabled={isLoading}
             >
-              <Text style={[styles.buttonText, { color: 'white' }]}>Confirm</Text>
+              {isLoading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text style={[styles.buttonText, { color: 'white' }]}>Confirm</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>

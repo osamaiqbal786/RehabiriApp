@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../utils/AuthContext';
+import { useAppState } from '../hooks/useAppState';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
@@ -22,6 +23,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const { login, isLoading } = useAuth();
+  const { dispatch } = useAppState();
   const navigation = useNavigation();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
@@ -77,6 +79,11 @@ export default function LoginScreen() {
 
     try {
       await login(email, password);
+      
+      // Trigger data refresh after successful login
+      dispatch({ type: 'TRIGGER_PATIENTS_REFRESH' });
+      dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
+      
       navigation.navigate('MainTabs' as never);
     } catch (error) {
       Alert.alert('Login Failed', 'Invalid email or password. Please try again.');

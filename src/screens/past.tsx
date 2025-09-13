@@ -29,6 +29,7 @@ export default function PastScreen() {
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [sessionToComplete, setSessionToComplete] = useState<Session | null>(null);
   const [sessionModalVisible, setSessionModalVisible] = useState(false);
+  const [isPaymentLoading, setIsPaymentLoading] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | undefined>(undefined);
   const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
 
@@ -145,6 +146,8 @@ export default function PastScreen() {
   const handlePaymentConfirm = async (amount: number) => {
     if (!sessionToComplete) return;
     
+    setIsPaymentLoading(true);
+    
     try {
       const updatedSession = { 
         ...sessionToComplete, 
@@ -152,17 +155,21 @@ export default function PastScreen() {
         amount: amount
       };
       await updateSession(updatedSession);
-      setPaymentModalVisible(false);
-      setSessionToComplete(null);
       // Trigger refresh of sessions data
       dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
       // Reapply filters if needed
       if (isFiltered) {
         applyFilters();
       }
+      
+      // Close modal after successful update
+      setPaymentModalVisible(false);
+      setSessionToComplete(null);
     } catch (error) {
       console.error('Error updating session with payment:', error);
       Alert.alert('Error', 'Failed to update session payment');
+    } finally {
+      setIsPaymentLoading(false);
     }
   };
 
@@ -323,6 +330,7 @@ export default function PastScreen() {
           session={sessionToComplete}
           onConfirm={handlePaymentConfirm}
           onCancel={handlePaymentCancel}
+          isLoading={isPaymentLoading}
         />
       )}
 

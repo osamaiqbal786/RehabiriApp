@@ -15,6 +15,7 @@ export default function TodayScreen() {
   const [selectedSession, setSelectedSession] = useState<Session | undefined>(undefined);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [sessionToComplete, setSessionToComplete] = useState<Session | null>(null);
+  const [isPaymentLoading, setIsPaymentLoading] = useState(false);
 
   // Use global state instead of local state
   const { 
@@ -99,6 +100,8 @@ export default function TodayScreen() {
   const handlePaymentConfirm = async (amount: number) => {
     if (!sessionToComplete) return;
     
+    setIsPaymentLoading(true);
+    
     try {
       const updatedSession = { 
         ...sessionToComplete, 
@@ -106,13 +109,17 @@ export default function TodayScreen() {
         amount: amount
       };
       await updateSession(updatedSession);
-      setPaymentModalVisible(false);
-      setSessionToComplete(null);
       // Trigger refresh of sessions data
       dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
+      
+      // Close modal after successful update
+      setPaymentModalVisible(false);
+      setSessionToComplete(null);
     } catch (error) {
       console.error('Error updating session with payment:', error);
       Alert.alert('Error', 'Failed to update session payment');
+    } finally {
+      setIsPaymentLoading(false);
     }
   };
 
@@ -218,6 +225,7 @@ export default function TodayScreen() {
           session={sessionToComplete}
           onConfirm={handlePaymentConfirm}
           onCancel={handlePaymentCancel}
+          isLoading={isPaymentLoading}
         />
       )}
     </View>
