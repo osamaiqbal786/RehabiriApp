@@ -191,6 +191,7 @@ export default function TodayScreen() {
         <FlatList
           data={todaySessions}
           keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
             <SessionCard
               session={item}
@@ -199,7 +200,6 @@ export default function TodayScreen() {
               onToggleComplete={handleToggleComplete}
             />
           )}
-          contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
               refreshing={sessionsLoading}
@@ -244,14 +244,14 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 15,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginBottom: 20,
-    paddingRight: 5,
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    paddingBottom: 5,
   },
   addButton: {
     width: 36,
@@ -269,6 +269,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  listContent: {
+    paddingHorizontal: 15,
+    paddingBottom: 20,
   },
   loadingText: {
     marginTop: 10,
@@ -301,9 +305,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
-  },
-  listContent: {
-    paddingBottom: 20,
   },
   modalContainer: {
     flex: 1,

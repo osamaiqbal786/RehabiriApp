@@ -44,11 +44,15 @@ export function useDataRefresh() {
     try {
       dispatch({ type: 'SET_SESSIONS_LOADING', payload: true });
       
+      // Calculate user's local date (not UTC)
+      const now = new Date();
+      const userDate = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+      
       // Fetch all session types in parallel
       const [todaySessions, upcomingSessions, pastSessions] = await Promise.all([
-        getTodaySessions(),
-        getUpcomingSessions(),
-        getPastSessions()
+        getTodaySessions(userDate),
+        getUpcomingSessions(userDate),
+        getPastSessions(userDate) // Pass userDate for 90-day default range
       ]);
       
       dispatch({ 
@@ -95,11 +99,15 @@ export function useDataRefresh() {
       dispatch({ type: 'SET_SESSIONS_LOADING', payload: true });
       dispatch({ type: 'SET_REFRESH_FAILED', payload: { sessions: false } }); // Clear previous failure
       
+      // Calculate user's local date (not UTC)
+      const now = new Date();
+      const userDate = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+      
       // Fetch all session types in parallel
       const [todaySessions, upcomingSessions, pastSessions] = await Promise.all([
-        getTodaySessions(),
-        getUpcomingSessions(),
-        getPastSessions()
+        getTodaySessions(userDate),
+        getUpcomingSessions(userDate),
+        getPastSessions(userDate) // Pass userDate for 90-day default range
       ]);
       
       dispatch({ 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,9 +19,10 @@ interface SessionFilterProps {
   visible?: boolean;
   onClose?: () => void;
   showCancelledOption?: boolean;
+  resetOnOpen?: boolean; // Whether to reset values when modal opens
 }
 
-export default function SessionFilterComponent({ patients, onApplyFilter, onClearFilter, visible = false, onClose, showCancelledOption = true }: SessionFilterProps) {
+export default function SessionFilterComponent({ patients, onApplyFilter, onClearFilter, visible = false, onClose, showCancelledOption = true, resetOnOpen = true }: SessionFilterProps) {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
 
@@ -45,6 +46,16 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
   const [showPatientPicker, setShowPatientPicker] = useState(false); // Add state for patient picker modal
   const [includeCancelled, setIncludeCancelled] = useState(false);
 
+  // Reset dates when modal becomes visible (only if resetOnOpen is true)
+  useEffect(() => {
+    if (visible && resetOnOpen) {
+      setStartDate(new Date());
+      setEndDate(new Date());
+      setPatientId('');
+      setIncludeCancelled(false);
+    }
+  }, [visible, resetOnOpen]);
+
   const handleStartDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       setShowStartDatePicker(false);
@@ -63,8 +74,45 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
     }
   };
 
+  // Ensure end date is within valid range when opening picker
+  const handleEndDatePickerOpen = () => {
+    const maxEndDate = getMaxEndDate(startDate);
+    if (endDate > maxEndDate) {
+      setEndDate(maxEndDate);
+    }
+    setShowEndDatePicker(true);
+  };
+
+  // Ensure start date is valid when opening picker
+  const handleStartDatePickerOpen = () => {
+    // If end date is set, ensure start date is not more than 90 days before end date
+    if (endDate) {
+      const minStartDate = new Date(endDate);
+      minStartDate.setDate(minStartDate.getDate() - 90);
+      
+      if (startDate < minStartDate) {
+        setStartDate(minStartDate);
+      }
+    }
+    setShowStartDatePicker(true);
+  };
+
   const formatDateForDisplay = (dateObj: Date): string => {
     return dateObj.toLocaleDateString();
+  };
+
+  // Helper function to get the maximum allowed end date (90 days from start date)
+  const getMaxEndDate = (startDateParam: Date): Date => {
+    const maxEndDate = new Date(startDateParam);
+    maxEndDate.setDate(maxEndDate.getDate() + 90);
+    return maxEndDate;
+  };
+
+  // Helper function to get the minimum allowed start date (90 days before end date)
+  const getMinStartDate = (endDateParam: Date): Date => {
+    const minStartDate = new Date(endDateParam);
+    minStartDate.setDate(minStartDate.getDate() - 90);
+    return minStartDate;
   };
 
   // Helper function to format date for storage without timezone issues
@@ -137,7 +185,8 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
                 mode="date"
                 display="spinner"
                 onChange={onChange}
-                minimumDate={isStart ? undefined : startDate}
+                minimumDate={isStart ? (endDate ? getMinStartDate(endDate) : undefined) : startDate}
+                maximumDate={isStart ? undefined : getMaxEndDate(startDate)}
                 textColor={theme.textColor}
                 themeVariant={isDarkMode ? 'dark' : 'light'}
               />
@@ -153,7 +202,8 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
             mode="date"
             display="default"
             onChange={onChange}
-            minimumDate={isStart ? undefined : startDate}
+            minimumDate={isStart ? (endDate ? getMinStartDate(endDate) : undefined) : startDate}
+            maximumDate={isStart ? undefined : getMaxEndDate(startDate)}
             themeVariant={isDarkMode ? 'dark' : 'light'}
           />
         )
@@ -195,7 +245,7 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
             <Text style={[styles.label, { color: theme.textColor }]}>Start Date</Text>
             <TouchableOpacity 
               style={[styles.dateTimeButton, { backgroundColor: theme.inputBackground, borderColor: theme.borderColor }]}
-              onPress={() => setShowStartDatePicker(true)}
+              onPress={handleStartDatePickerOpen}
             >
               <Text style={{ color: theme.textColor }}>{formatDateForDisplay(startDate)}</Text>
             </TouchableOpacity>
@@ -207,11 +257,16 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
             <Text style={[styles.label, { color: theme.textColor }]}>End Date</Text>
             <TouchableOpacity 
               style={[styles.dateTimeButton, { backgroundColor: theme.inputBackground, borderColor: theme.borderColor }]}
-              onPress={() => setShowEndDatePicker(true)}
+              onPress={handleEndDatePickerOpen}
             >
               <Text style={{ color: theme.textColor }}>{formatDateForDisplay(endDate)}</Text>
             </TouchableOpacity>
             {renderDateTimePicker('end')}
+            
+            {/* 90-day limit info */}
+            <Text style={[styles.dateRangeInfo, { color: theme.textColor, opacity: 0.7 }]}>
+              Maximum 90 days from start date
+            </Text>
           </View>
           
           {/* Include Cancelled Sessions Checkbox - Only show if showCancelledOption is true */}
@@ -428,5 +483,11 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 16,
     flex: 1,
+  },
+  dateRangeInfo: {
+    fontSize: 12,
+    marginTop: 5,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });

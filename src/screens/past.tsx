@@ -13,7 +13,7 @@ import {
 import { useRoute } from '@react-navigation/native';
 import { FileDown, Filter } from 'lucide-react-native';
 import { Session } from '../../types';
-import { deleteSession, updateSession } from '../../utils/mongoStorage';
+import { deleteSession, updateSession, getPastSessions } from '../../utils/mongoStorage';
 import { useAppState } from '../hooks/useAppState';
 import { useDataRefresh } from '../hooks/useDataRefresh';
 import SessionCard from '../../components/SessionCard';
@@ -65,6 +65,42 @@ export default function PastScreen() {
     placeholderColor: isDarkMode ? '#888888' : '#999999',
     modalBg: isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
     separatorColor: isDarkMode ? '#333333' : '#EFEFEF',
+  };
+
+  // Helper function to validate date range (max 90 days)
+  const validateDateRange = (startDate: string, endDate: string): { isValid: boolean; adjustedEndDate?: string } => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const daysDiff = Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+    
+    if (daysDiff > 90) {
+      // Auto-adjust end date to 90 days from start date
+      const adjustedEnd = new Date(start);
+      adjustedEnd.setDate(adjustedEnd.getDate() + 90);
+      return { isValid: false, adjustedEndDate: adjustedEnd.toISOString().split('T')[0] };
+    }
+    
+    return { isValid: true };
+  };
+
+  // Helper function to check if BOTH start and end dates are within the 90-day fetched range
+  const isWithinThreeMonthCache = (startDate: string, endDate: string): boolean => {
+    const today = new Date();
+    const userDate = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+    
+    // Calculate the 90-day range that was fetched
+    const todayObj = new Date(userDate + 'T12:00:00');
+    const ninetyDaysAgo = new Date(todayObj);
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    const yesterday = new Date(todayObj);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const fetchedStartDate = ninetyDaysAgo.toISOString().split('T')[0];
+    const fetchedEndDate = yesterday.toISOString().split('T')[0];
+    
+    // Both start and end dates must be within the fetched range
+    return startDate >= fetchedStartDate && startDate <= fetchedEndDate && 
+           endDate >= fetchedStartDate && endDate <= fetchedEndDate;
   };
 
   // Local filtering function - no API calls needed!
@@ -119,9 +155,61 @@ export default function PastScreen() {
   // Get the sessions to display (filtered or global)
   const displaySessions = isFiltered ? filteredSessions : pastSessions;
 
-  const handleApplyFilter = (filters: any) => {
+  const handleApplyFilter = async (filters: any) => {
     setShowFilter(false); // Hide filter after applying
-    applyFilters(filters);
+    
+    try {
+      // If filters include date range, check if we need to fetch from server
+      if (filters.startDate && filters.endDate) {
+        const validation = validateDateRange(filters.startDate, filters.endDate);
+        
+        if (!validation.isValid) {
+          // Show alert for auto-adjustment
+          Alert.alert(
+            'Date Range Adjusted',
+            `Date range exceeds 90 days. End date has been adjusted to ${validation.adjustedEndDate}`,
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  // Apply filter with adjusted date
+                  const adjustedFilters = { ...filters, endDate: validation.adjustedEndDate };
+                  applyFilters(adjustedFilters);
+                }
+              }
+            ]
+          );
+          return;
+        }
+        
+        // Check if the range is within our cached 90-day data
+        if (isWithinThreeMonthCache(filters.startDate, filters.endDate)) {
+          // Use local store data
+          applyFilters(filters);
+        } else {
+          // Fetch from server with the specified date range
+          const today = new Date();
+          const userDate = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+          
+          const serverSessions = await getPastSessions(userDate, filters.startDate, filters.endDate, filters.includeCancelled);
+          
+          // Apply additional filters (patient) to server data
+          let filteredServerSessions = serverSessions;
+          if (filters.patientId) {
+            filteredServerSessions = serverSessions.filter(session => session.patientId === filters.patientId);
+          }
+          
+          setIsFiltered(true);
+          setFilteredSessions(filteredServerSessions);
+        }
+      } else {
+        // No date range, use local filtering
+        applyFilters(filters);
+      }
+    } catch (error) {
+      console.error('Error applying filters:', error);
+      Alert.alert('Error', 'Failed to apply filters. Please try again.');
+    }
   };
 
   const handleClearFilter = () => {
@@ -285,6 +373,7 @@ export default function PastScreen() {
         visible={showFilter}
         onClose={() => setShowFilter(false)}
         showCancelledOption={true}
+        resetOnOpen={false} // Don't reset values when reopening modal
       />
 
       {/* Data Status Bar */}

@@ -215,9 +215,10 @@ export const saveMultipleSessions = async (sessions: Omit<Session, 'id' | 'creat
 };
 
 
-export const getTodaySessions = async (): Promise<Session[]> => {
+export const getTodaySessions = async (userDate?: string): Promise<Session[]> => {
   try {
-    const response = await apiCall('/api/sessions/today');
+    const endpoint = userDate ? `/api/sessions/today?date=${userDate}` : '/api/sessions/today';
+    const response = await apiCall(endpoint);
     return extractData(response, 'sessions') || [];
   } catch (error) {
     console.error('Error getting today sessions:', error);
@@ -226,9 +227,25 @@ export const getTodaySessions = async (): Promise<Session[]> => {
   }
 };
 
-export const getPastSessions = async (): Promise<Session[]> => {
+export const getPastSessions = async (userDate?: string, startDate?: string, endDate?: string, includeCancelled: boolean = true): Promise<Session[]> => {
   try {
-    const response = await apiCall('/api/sessions/past?includeCancelled=true');
+    let endpoint = '/api/sessions/past?includeCancelled=true';
+    
+    // Add parameters if provided
+    if (userDate) {
+      endpoint += `&date=${userDate}`;
+    }
+    if (startDate) {
+      endpoint += `&startDate=${startDate}`;
+    }
+    if (endDate) {
+      endpoint += `&endDate=${endDate}`;
+    }
+    if (!includeCancelled) {
+      endpoint = endpoint.replace('includeCancelled=true', 'includeCancelled=false');
+    }
+    
+    const response = await apiCall(endpoint);
     return extractData(response, 'sessions');
   } catch (error) {
     console.error('Error getting past sessions:', error);
@@ -237,9 +254,10 @@ export const getPastSessions = async (): Promise<Session[]> => {
   }
 };
 
-export const getUpcomingSessions = async (): Promise<Session[]> => {
+export const getUpcomingSessions = async (userDate?: string): Promise<Session[]> => {
   try {
-    const response = await apiCall('/api/sessions/upcoming');
+    const endpoint = userDate ? `/api/sessions/upcoming?date=${userDate}` : '/api/sessions/upcoming';
+    const response = await apiCall(endpoint);
     return extractData(response, 'sessions');
   } catch (error) {
     console.error('Error getting upcoming sessions:', error);

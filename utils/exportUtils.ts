@@ -10,14 +10,22 @@ const formatSessionForExport = (session: Session) => {
   // Format date for better readability
   const formattedDate = new Date(session.date).toLocaleDateString();
   
+  // Determine session status
+  let status = 'Pending';
+  if (session.completed) {
+    status = 'Completed';
+  } else if (session.cancelled) {
+    status = 'Cancelled';
+  }
+  
+  // Format amount
+  const amount = session.amount !== undefined ? `₹${session.amount.toFixed(2)}` : '-';
+  
   return {
     'Patient Name': session.patientName,
     'Date': formattedDate,
-    'Time': session.time,
-    'Notes': session.notes,
-    'Status': session.completed ? 'Completed' : 'Pending',
-    'Amount Paid': session.amount !== undefined ? `$${session.amount.toFixed(2)}` : 'Not paid',
-    'Created At': new Date(session.createdAt).toLocaleDateString(),
+    'Status': status,
+    'Amount': amount,
   };
 };
 
@@ -29,8 +37,24 @@ export const exportSessionsToExcel = async (sessions: Session[], patientName: st
     // Format the data for export
     const formattedSessions = sessions.map(formatSessionForExport);
     
+    // Calculate total amount
+    const totalAmount = sessions.reduce((sum, session) => {
+      return sum + (session.amount || 0);
+    }, 0);
+    
+    // Add total row at the end
+    const totalRow = {
+      'Patient Name': '',
+      'Date': '',
+      'Status': 'TOTAL',
+      'Amount': `₹${totalAmount.toFixed(2)}`,
+    };
+    
+    // Add total row to the data
+    const dataWithTotal = [...formattedSessions, totalRow];
+    
     // Create a worksheet from the data
-    const worksheet = XLSX.utils.json_to_sheet(formattedSessions);
+    const worksheet = XLSX.utils.json_to_sheet(dataWithTotal);
     
     // Create a workbook with the worksheet
     const workbook = XLSX.utils.book_new();

@@ -246,6 +246,7 @@ export default function UpcomingScreen() {
         visible={showFilter}
         onClose={() => setShowFilter(false)}
         showCancelledOption={false}
+        resetOnOpen={false} // Don't reset values when reopening modal
       />
 
       {/* Data Status Bar */}
