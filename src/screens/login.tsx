@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../utils/AuthContext';
 import { useAppState } from '../hooks/useAppState';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import PermissionRequest from '../components/PermissionRequest';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -36,6 +37,7 @@ export default function LoginScreen() {
     }, 100);
     return () => clearTimeout(timer);
   }, []);
+
 
   // Define theme colors based on color scheme
   const theme = {
@@ -104,6 +106,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      <PermissionRequest delay={1000} />
       
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

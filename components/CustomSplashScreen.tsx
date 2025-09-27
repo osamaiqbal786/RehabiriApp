@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Image, StyleSheet, Animated, Dimensions, Text, useColorScheme } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../utils/AuthContext';
 
 const { width, height } = Dimensions.get('window');
@@ -46,21 +46,26 @@ export default function CustomSplashScreen() {
         useNativeDriver: true,
       }),
     ]).start();
+  }, [fadeAnim, scaleAnim, textAnim]);
 
-    // Navigate after splash screen duration
-    const timer = setTimeout(() => {
-      if (!isLoading) {
-        if (user) {
-          navigation.navigate('MainTabs' as never);
-        } else {
-          // Navigate directly to login without showing intermediate screen
-          navigation.navigate('Login' as never);
+  // Only handle navigation when the splash screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      // Navigate after splash screen duration
+      const timer = setTimeout(() => {
+        if (!isLoading) {
+          if (user) {
+            navigation.navigate('MainTabs' as never);
+          } else {
+            // Navigate directly to login without showing intermediate screen
+            navigation.navigate('Login' as never);
+          }
         }
-      }
-    }, 3500); // Show splash for 3.5 seconds
+      }, 3500); // Show splash for 3.5 seconds
 
-    return () => clearTimeout(timer);
-  }, [user, isLoading, fadeAnim, scaleAnim, textAnim, navigation]);
+      return () => clearTimeout(timer);
+    }, [user, isLoading, navigation])
+  );
 
   // Don't render until color scheme is detected
   if (!isReady) {

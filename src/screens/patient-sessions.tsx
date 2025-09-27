@@ -15,17 +15,14 @@ import { useFocusEffect, useRoute } from '@react-navigation/native';
 import { Session } from '../../types';
 import { deleteSession } from '../../utils/mongoStorage';
 import { useAppState } from '../hooks/useAppState';
-import { exportSessionsToExcel } from '../../utils/exportUtils';
 import SessionCard from '../../components/SessionCard';
 import SessionEditModal from '../../components/SessionEditModal';
-import { FileDown } from 'lucide-react-native';
 
 export default function PatientSessionsScreen() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCompletedSessions, setShowCompletedSessions] = useState(false);
   const [hideCancelled, setHideCancelled] = useState(false);
-  const [patientName, setPatientName] = useState('');
   const [sessionModalVisible, setSessionModalVisible] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | undefined>(undefined);
 
@@ -52,15 +49,6 @@ export default function PatientSessionsScreen() {
     modalBg: isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
   };
 
-  const loadPatientInfo = useCallback(() => {
-    if (!patientId) return;
-    
-    // Get patient name from store data instead of API call
-    const patient = patients.find(p => p.id === patientId);
-    if (patient) {
-      setPatientName(patient.name);
-    }
-  }, [patientId, patients]);
 
   const loadSessions = useCallback(() => {
     if (!patientId) return;
@@ -75,9 +63,22 @@ export default function PatientSessionsScreen() {
       const patientSessions = allSessions.filter(session => session.patientId === patientId);
       
       // Filter based on the selected tab (completed or upcoming)
-      let filteredByStatus = patientSessions.filter(session => 
-        showCompletedSessions ? (session.completed || session.cancelled) : (!session.completed && !session.cancelled)
-      );
+      let filteredByStatus;
+      
+      if (showCompletedSessions) {
+        // For completed tab: show completed or cancelled sessions
+        filteredByStatus = patientSessions.filter(session => 
+          session.completed || session.cancelled
+        );
+      } else {
+        // For upcoming tab: show only future sessions that are not completed/cancelled
+        const today = new Date();
+        const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+        
+        filteredByStatus = patientSessions.filter(session => 
+          !session.completed && !session.cancelled && session.date > todayStr
+        );
+      }
       
       // If showing completed sessions and hide cancelled is checked, filter out cancelled sessions
       if (showCompletedSessions && hideCancelled) {
@@ -89,7 +90,7 @@ export default function PatientSessionsScreen() {
         const dateA = new Date(`${a.date}T${a.time}`);
         const dateB = new Date(`${b.date}T${b.time}`);
         return showCompletedSessions 
-          ? dateA.getTime() - dateB.getTime() // Ascending for completed (oldest first)
+          ? dateB.getTime() - dateA.getTime() // Descending for completed (latest first)
           : dateA.getTime() - dateB.getTime(); // Ascending for upcoming
       });
       
@@ -101,9 +102,6 @@ export default function PatientSessionsScreen() {
     }
   }, [patientId, showCompletedSessions, hideCancelled, todaySessions, upcomingSessions, pastSessions]);
 
-  useEffect(() => {
-    loadPatientInfo();
-  }, [loadPatientInfo]);
 
   useFocusEffect(
     useCallback(() => {
@@ -111,29 +109,6 @@ export default function PatientSessionsScreen() {
     }, [loadSessions])
   );
 
-  const handleExportSessions = async () => {
-    try {
-      setLoading(true);
-      
-      if (sessions.length === 0) {
-        Alert.alert('No Data', `There are no ${showCompletedSessions ? 'completed' : 'upcoming'} sessions to export`);
-        setLoading(false);
-        return;
-      }
-      
-      const success = await exportSessionsToExcel(sessions, patientName);
-      if (success) {
-        Alert.alert('Success', 'Sessions exported successfully');
-      } else {
-        Alert.alert('Error', 'Failed to export sessions');
-      }
-    } catch (error) {
-      console.error('Error exporting sessions:', error);
-      Alert.alert('Error', 'Failed to export sessions');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleEditSession = (session: Session) => {
     setSelectedSession(session);
@@ -186,13 +161,18 @@ export default function PatientSessionsScreen() {
     />
   );
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyStateContainer}>
-      <Text style={[styles.emptyStateText, { color: theme.textColor }]}>
-        No {showCompletedSessions ? 'completed' : 'upcoming'} sessions found for {patientName}
-      </Text>
-    </View>
-  );
+  const renderEmptyState = () => {
+    const patient = patients.find(p => p.id === patientId);
+    const patientName = patient ? patient.name : 'this patient';
+    
+    return (
+      <View style={styles.emptyStateContainer}>
+        <Text style={[styles.emptyStateText, { color: theme.textColor }]}>
+          No {showCompletedSessions ? 'completed' : 'upcoming'} sessions found for {patientName}
+        </Text>
+      </View>
+    );
+  };
 
   const renderTabButton = (title: string, isActive: boolean, onPress: () => void) => (
     <TouchableOpacity
@@ -229,19 +209,6 @@ export default function PatientSessionsScreen() {
           {renderTabButton('Completed', showCompletedSessions, () => setShowCompletedSessions(true))}
         </View>
 
-        {/* Export Button */}
-        {sessions.length > 0 && (
-          <View style={styles.exportContainer}>
-            <TouchableOpacity 
-              style={[styles.exportButton, { backgroundColor: theme.primaryColor }]}
-              onPress={handleExportSessions}
-              activeOpacity={0.7}
-            >
-              <FileDown size={16} color="white" style={styles.exportIcon} />
-              <Text style={styles.exportButtonText}>Export Sessions</Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
         {/* Sessions List */}
         {loading ? (
@@ -324,25 +291,6 @@ const styles = StyleSheet.create({
   },
   tabButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-  },
-  exportContainer: {
-    alignItems: 'flex-end',
-    marginBottom: 15,
-  },
-  exportButton: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  exportIcon: {
-    marginRight: 8,
-  },
-  exportButtonText: {
-    color: 'white',
-    fontSize: 14,
     fontWeight: '600',
   },
   loadingContainer: {

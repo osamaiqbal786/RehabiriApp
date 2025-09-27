@@ -33,6 +33,8 @@ export default function PastScreen() {
   const [isPaymentLoading, setIsPaymentLoading] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | undefined>(undefined);
   const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
+  const [currentFilters, setCurrentFilters] = useState<any>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Use global state instead of local state
   const { 
@@ -131,6 +133,9 @@ export default function PastScreen() {
   // Handle filtering logic - now using local filtering!
   const applyFilters = useCallback((filters?: any) => {
     try {
+      // Store current filters for export
+      setCurrentFilters(filters);
+      
       if (patientId && !filters) {
         // Filter by patient from route params
         setIsFiltered(true);
@@ -201,6 +206,7 @@ export default function PastScreen() {
           
           setIsFiltered(true);
           setFilteredSessions(filteredServerSessions);
+          setCurrentFilters(filters); // Store filters for export
         }
       } else {
         // No date range, use local filtering
@@ -216,6 +222,7 @@ export default function PastScreen() {
     setIsFiltered(false);
     setShowFilter(false); // Hide filter after clearing
     setFilteredSessions([]);
+    setCurrentFilters(null); // Clear current filters
   };
 
   const handleDeleteSession = (sessionId: string) => {
@@ -321,18 +328,36 @@ export default function PastScreen() {
         return;
       }
       
-      // For all sessions, use "All Patients" as the name
-      const exportName = "All Patients";
+      setIsExporting(true);
       
-      const success = await exportSessionsToExcel(displaySessions, exportName);
-      if (success) {
-        Alert.alert('Success', 'Sessions exported successfully');
-      } else {
-        Alert.alert('Error', 'Failed to export sessions');
+      // Determine export name based on current filters
+      let exportName = "All Patients";
+      
+      if (currentFilters && currentFilters.patientId) {
+        // Find patient name from the patient ID
+        const patient = patients.find(p => p.id === currentFilters.patientId);
+        if (patient) {
+          exportName = patient.name;
+        }
+      } else if (patientId) {
+        // Use patient from route params
+        const patient = patients.find(p => p.id === patientId);
+        if (patient) {
+          exportName = patient.name;
+        }
       }
+      
+      await exportSessionsToExcel(displaySessions, exportName);
+      // if (success) {
+      //   Alert.alert('Success', 'Sessions exported successfully');
+      // } else {
+      //   Alert.alert('Error', 'Failed to export sessions');
+      // }
     } catch (error) {
       console.error('Error exporting sessions:', error);
       Alert.alert('Error', 'Failed to export sessions');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -360,8 +385,13 @@ export default function PastScreen() {
             style={[styles.exportButton, { backgroundColor: theme.primaryColor }]}
             onPress={handleExportSessions}
             activeOpacity={0.7}
+            disabled={isExporting}
           >
-            <FileDown size={20} color="white" />
+            {isExporting ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <FileDown size={20} color="white" />
+            )}
           </TouchableOpacity>
         </View>
       </View>
