@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, StyleSheet, useColorScheme } from 'react-native';
+import { Modal, View, StyleSheet, useColorScheme, KeyboardAvoidingView, Platform } from 'react-native';
 import { Session } from '../types';
 import SessionForm from './SessionForm';
 
@@ -26,15 +26,20 @@ export default function SessionEditModal({ visible, session, onClose, onSave }: 
       transparent={true}
       onRequestClose={onClose}
     >
-      <View style={[styles.modalContainer, { backgroundColor: theme.modalBg }]}>
-        <View style={[styles.modalContent, { backgroundColor: theme.backgroundColor }]}>
-          <SessionForm
-            existingSession={session}
-            onSave={onSave}
-            onCancel={onClose}
-          />
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: theme.modalBg }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.backgroundColor }]}>
+            <SessionForm
+              existingSession={session}
+              onSave={onSave}
+              onCancel={onClose}
+            />
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -51,5 +56,8 @@ const styles = StyleSheet.create({
     maxWidth: 500,
     borderRadius: 10,
     padding: 20,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
 });

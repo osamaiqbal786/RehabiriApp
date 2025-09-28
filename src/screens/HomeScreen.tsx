@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, useColorScheme, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, useColorScheme, ActivityIndicator, RefreshControl, KeyboardAvoidingView, Platform } from 'react-native';
 import { Plus } from 'lucide-react-native';
 import { Session } from '../../types';
 import { updateSession, deleteSession } from '../../utils/mongoStorage';
@@ -216,16 +216,21 @@ export default function TodayScreen() {
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: theme.modalBg }]}>
-          <View style={styles.modalContent}>
-            <SessionForm
-              existingSession={selectedSession}
-              onSave={handleSaveSession}
-              onCancel={() => setModalVisible(false)}
-              showUpdateAll={false}
-            />
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardAvoidingView}
+        >
+          <View style={[styles.modalContainer, { backgroundColor: theme.modalBg }]}>
+            <View style={styles.modalContent}>
+              <SessionForm
+                existingSession={selectedSession}
+                onSave={handleSaveSession}
+                onCancel={() => setModalVisible(false)}
+                showUpdateAll={false}
+              />
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {sessionToComplete && (
@@ -315,5 +320,8 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxWidth: 500,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
 });

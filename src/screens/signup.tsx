@@ -11,7 +11,9 @@ import {
   StatusBar,
   Platform,
   KeyboardAvoidingView,
-  ScrollView
+  ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../utils/AuthContext';
@@ -213,10 +215,11 @@ export default function SignupScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}
-      >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardAvoidingView}
+        >
         <ScrollView 
           style={styles.scrollView}
           contentContainerStyle={styles.scrollViewContent}
@@ -473,7 +476,8 @@ export default function SignupScreen() {
           
           <View style={styles.bottomPadding} />
         </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }

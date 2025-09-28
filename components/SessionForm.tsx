@@ -9,7 +9,9 @@ import {
   Modal, 
   useColorScheme,
   ScrollView,
-  Platform
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { saveMultipleSessions, updateSession, updateAllPatientSessionsDetails, getLastActiveSessionDate } from '../utils/mongoStorage';
@@ -428,10 +430,11 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
 
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
-      <Text style={[styles.title, { color: theme.textColor }]}>
-        {existingSession ? 'Edit Session' : 'Add New Sessions'}
-      </Text>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
+        <Text style={[styles.title, { color: theme.textColor }]}>
+          {existingSession ? 'Edit Session' : 'Add New Sessions'}
+        </Text>
       
       {/* Patient Selector */}
       <View style={styles.formGroup}>
@@ -685,7 +688,8 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
       
       {/* Time Picker */}
       {renderTimePicker()}
-    </View>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 

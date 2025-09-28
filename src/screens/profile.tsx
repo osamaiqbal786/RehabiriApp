@@ -10,6 +10,8 @@ import {
   ScrollView,
   useColorScheme,
   StatusBar,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { useAuth } from '../../utils/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -169,8 +171,8 @@ export default function ProfileScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       
-
-      <ScrollView 
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -418,7 +420,8 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           )}
         </View>
-      </ScrollView>
+        </ScrollView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }

@@ -8,6 +8,8 @@ import {
   Alert,
   ActivityIndicator,
   useColorScheme,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { sendOTP, verifyOTP } from '../utils/mongoAuth';
 
@@ -89,9 +91,10 @@ export default function OTPVerification({ email, onVerificationSuccess, onBack }
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
-      <View style={[styles.card, { backgroundColor: theme.cardBackground }]}>
-        <Text style={[styles.title, { color: theme.textColor }]}>Verify Your Email</Text>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
+        <View style={[styles.card, { backgroundColor: theme.cardBackground }]}>
+          <Text style={[styles.title, { color: theme.textColor }]}>Verify Your Email</Text>
         <Text style={[styles.subtitle, { color: theme.subtitleColor }]}>
           We've sent a verification code to:
         </Text>
@@ -160,8 +163,9 @@ export default function OTPVerification({ email, onVerificationSuccess, onBack }
             Back to Sign Up
           </Text>
         </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   );
 }
 

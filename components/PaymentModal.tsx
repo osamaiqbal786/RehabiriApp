@@ -8,7 +8,9 @@ import {
   Modal, 
   useColorScheme,
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
+  TouchableWithoutFeedback,
+  Keyboard
 } from 'react-native';
 import { Session } from '../types';
 
@@ -75,8 +77,10 @@ export default function PaymentModal({ visible, session, onConfirm, onCancel, is
       animationType="fade"
       onRequestClose={handleCancel}
     >
-      <View style={[styles.modalContainer, { backgroundColor: theme.modalBg }]}>
-        <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.modalBg }]}>
+          <TouchableWithoutFeedback onPress={() => {}}>
+            <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
           <Text style={[styles.title, { color: theme.textColor }]}>Session Payment</Text>
           
           <Text style={[styles.patientName, { color: theme.textColor }]}>
@@ -142,8 +146,10 @@ export default function PaymentModal({ visible, session, onConfirm, onCancel, is
               )}
             </TouchableOpacity>
           </View>
+            </View>
+          </TouchableWithoutFeedback>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }

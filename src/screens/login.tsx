@@ -11,7 +11,9 @@ import {
   StatusBar,
   Platform,
   KeyboardAvoidingView,
-  ScrollView
+  ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../utils/AuthContext';
@@ -108,10 +110,11 @@ export default function LoginScreen() {
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       <PermissionRequest delay={1000} />
       
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}
-      >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardAvoidingView}
+        >
         <ScrollView 
           style={styles.scrollView}
           contentContainerStyle={styles.scrollViewContent}
@@ -197,7 +200,8 @@ export default function LoginScreen() {
           {/* Add extra padding at the bottom to ensure content is visible above keyboard */}
           <View style={styles.bottomPadding} />
         </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }

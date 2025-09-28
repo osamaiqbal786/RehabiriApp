@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, useColorScheme, Modal, FlatList } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, useColorScheme, Modal, FlatList, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 import { savePatient, updatePatient } from '../utils/mongoStorage';
 import { Patient } from '../types';
@@ -120,10 +120,11 @@ export default function PatientForm({ existingPatient, onSave, onCancel }: Patie
 
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
-      <Text style={[styles.title, { color: theme.textColor }]}>
-        {existingPatient ? 'Edit Patient' : 'Add New Patient'}
-      </Text>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
+        <Text style={[styles.title, { color: theme.textColor }]}>
+          {existingPatient ? 'Edit Patient' : 'Add New Patient'}
+        </Text>
       
       <View style={styles.formGroup}>
         <Text style={[styles.label, { color: theme.textColor }]}>Patient Name</Text>
@@ -226,7 +227,8 @@ export default function PatientForm({ existingPatient, onSave, onCancel }: Patie
         </TouchableOpacity>
       </View>
       
-    </View>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
