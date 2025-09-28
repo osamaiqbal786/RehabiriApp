@@ -407,10 +407,12 @@ export default function PastScreen() {
       />
 
       {/* Data Status Bar */}
-      <DataStatusBar 
-        onRefresh={refreshSessions}
-        dataType="sessions"
-      />
+      <View style={styles.statusBarContainer}>
+        <DataStatusBar 
+          onRefresh={refreshSessions}
+          dataType="sessions"
+        />
+      </View>
 
       {/* Refresh Failure Message */}
       <StatusMessage 
@@ -586,5 +588,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  statusBarContainer: {
+    marginBottom: 10,
   },
 });

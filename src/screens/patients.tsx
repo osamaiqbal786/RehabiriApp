@@ -193,10 +193,12 @@ export default function PatientsScreen() {
       </View>
 
       {/* Data Status Bar */}
-      <DataStatusBar 
-        onRefresh={refreshPatients}
-        dataType="patients"
-      />
+      <View style={styles.statusBarContainer}>
+        <DataStatusBar 
+          onRefresh={refreshPatients}
+          dataType="patients"
+        />
+      </View>
 
       {/* Refresh Failure Message */}
       <StatusMessage 
@@ -419,5 +421,9 @@ const styles = StyleSheet.create({
     maxWidth: 500,
     borderRadius: 10,
     padding: 20,
+  },
+  statusBarContainer: {
+    marginTop: 15,
+    marginBottom: 10,
   },
 });

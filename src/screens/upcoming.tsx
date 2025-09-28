@@ -250,10 +250,12 @@ export default function UpcomingScreen() {
       />
 
       {/* Data Status Bar */}
-      <DataStatusBar 
-        onRefresh={refreshSessions}
-        dataType="sessions"
-      />
+      <View style={styles.statusBarContainer}>
+        <DataStatusBar 
+          onRefresh={refreshSessions}
+          dataType="sessions"
+        />
+      </View>
 
       {/* Refresh Failure Message */}
       <StatusMessage 
@@ -369,6 +371,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
+  },
+  statusBarContainer: {
+    marginBottom: 10,
   },
   centerContent: {
     flex: 1,
