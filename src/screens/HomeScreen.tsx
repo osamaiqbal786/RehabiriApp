@@ -147,6 +147,7 @@ export default function TodayScreen() {
         </TouchableOpacity>
       </View>
 
+
       {/* Data Status Bar */}
       <View style={styles.statusBarContainer}>
         <DataStatusBar 

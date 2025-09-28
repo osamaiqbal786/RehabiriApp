@@ -2,6 +2,7 @@ import { Patient, Session } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../src/config';
 
+
 // Helper function to get auth headers
 const getAuthHeaders = async () => {
   const token = await AsyncStorage.getItem('physio_jwt_token');

@@ -117,3 +117,13 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+configurations.all {
+    resolutionStrategy {
+        force 'androidx.core:core:1.16.0'
+        force 'androidx.core:core-ktx:1.16.0'
+        // Exclude old support libraries that conflict with AndroidX
+        exclude group: 'com.android.support', module: 'support-compat'
+        exclude group: 'com.android.support', module: 'support-annotations'
+    }
+}

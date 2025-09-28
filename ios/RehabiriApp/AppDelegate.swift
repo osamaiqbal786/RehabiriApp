@@ -2,9 +2,10 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+import UserNotifications
 
 @main
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
   var window: UIWindow?
 
   var reactNativeDelegate: ReactNativeDelegate?
@@ -29,7 +30,31 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       launchOptions: launchOptions
     )
 
+    // Set notification center delegate
+    UNUserNotificationCenter.current().delegate = self
+
+    // Request notification permissions
+    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+      if granted {
+        print("✅ Notification permission granted")
+      } else {
+        print("❌ Notification permission denied: \(error?.localizedDescription ?? "Unknown error")")
+      }
+    }
+
     return true
+  }
+
+  // Handle notification when app is in foreground
+  func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+    print("📱 Notification received in foreground: \(notification.request.content.title)")
+    completionHandler([.alert, .badge, .sound])
+  }
+
+  // Handle notification when user taps on it
+  func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+    print("📱 Notification tapped: \(response.notification.request.content.title)")
+    completionHandler()
   }
 }
 

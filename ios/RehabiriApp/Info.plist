@@ -33,6 +33,8 @@
 	<string>This app needs access to camera to take profile photos</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to photo library to select profile photos</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>Rehabiri needs permission to send you session reminders and updates</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
 	<key>RCTNewArchEnabled</key>

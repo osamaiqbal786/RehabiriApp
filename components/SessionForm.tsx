@@ -14,10 +14,11 @@ import {
   Keyboard
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { saveMultipleSessions, updateSession, updateAllPatientSessionsDetails, getLastActiveSessionDate } from '../utils/mongoStorage';
+import { saveMultipleSessions, updateSession, updateAllPatientSessionsDetails } from '../utils/mongoStorage';
 import { Session } from '../types';
-import { scheduleSessionNotification } from '../utils/notifications';
+import { scheduleSessionNotification, cancelSessionNotification } from '../utils/notifications';
 import { useAppState } from '../src/hooks/useAppState';
+import MultiDateCalendar from './MultiDateCalendar';
 
 interface SessionFormProps {
   existingSession?: Session;
@@ -31,6 +32,9 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
   // Get the device color scheme
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
+  
+  // Get all sessions from store
+  const { todaySessions, upcomingSessions } = useAppState();
 
   // Get patient data from store instead of API call
   const { patients } = useAppState();
@@ -50,7 +54,6 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
   };
 
   const [patientId, setPatientId] = useState(existingSession?.patientId || preselectedPatientId || '');
-  const [sessionCount, setSessionCount] = useState('1');
   const [time, setTime] = useState(existingSession ? new Date(`2000-01-01T${existingSession.time}`) : new Date());
   const [notes, setNotes] = useState(existingSession?.notes || '');
   const [amount, setAmount] = useState(existingSession?.amount !== undefined && existingSession?.amount !== null ? existingSession.amount.toString() : '');
@@ -60,10 +63,12 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
   const [originalAmount, _setOriginalAmount] = useState(existingSession?.amount !== undefined && existingSession?.amount !== null ? existingSession.amount.toString() : '');
   const [originalNotes, _setOriginalNotes] = useState(existingSession?.notes || '');
   const [originalTime, _setOriginalTime] = useState(existingSession ? new Date(`2000-01-01T${existingSession.time}`) : new Date());
-  const [errors, setErrors] = useState<{ patientId?: string; sessionCount?: string; time?: string; amount?: string }>({});
+  const [errors, setErrors] = useState<{ patientId?: string; selectedDates?: string; time?: string; amount?: string }>({});
   
   const [showPatientPicker, setShowPatientPicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showMultiDateCalendar, setShowMultiDateCalendar] = useState(false);
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
 
   // Check if any field has been changed from original value
   const isAnyFieldChanged = () => {
@@ -82,17 +87,16 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
   }, [patients, patientId]);
 
   const validateForm = (): boolean => {
-    const newErrors: { patientId?: string; sessionCount?: string; time?: string; amount?: string } = {};
+    const newErrors: { patientId?: string; selectedDates?: string; time?: string; amount?: string } = {};
     
     if (!patientId) {
       newErrors.patientId = 'Please select a patient';
     }
     
-    // Only validate session count for new sessions
+    // Only validate selected dates for new sessions
     if (!existingSession) {
-      const count = parseInt(sessionCount, 10);
-      if (!sessionCount || isNaN(count) || count < 1 || count > 365) {
-        newErrors.sessionCount = 'Please enter a valid session count (1-365)';
+      if (selectedDates.length === 0) {
+        newErrors.selectedDates = 'Please select at least one date for the session(s)';
       }
     }
     
@@ -106,47 +110,29 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
     }
 
     try {
-      const lastActiveDate = await getLastActiveSessionDate(patientId);
       const patient = patients.find(p => p.id === patientId);
       const patientName = patient?.name || 'this patient';
-      const count = parseInt(sessionCount, 10);
+      const count = selectedDates.length;
       
-      if (lastActiveDate) {
-        const lastActiveDateObj = new Date(lastActiveDate);
-        const startDate = new Date(lastActiveDateObj);
-        startDate.setDate(lastActiveDateObj.getDate() + 1); // Start from day after last active session
-        
-        const endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + count - 1); // Calculate end date
-        
-        
-        return new Promise((resolve) => {
-          Alert.alert(
-            'Confirm Session Creation',
-            `${patientName} has active sessions. ${count} new session(s) will be created after the last active session, starting from ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}. Continue?`,
-            [
-              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-              { text: 'Create Sessions', onPress: () => resolve(true) }
-            ]
-          );
+      const dateList = selectedDates.map(date => {
+        const dateObj = new Date(date);
+        return dateObj.toLocaleDateString('en-US', { 
+          weekday: 'short', 
+          month: 'short', 
+          day: 'numeric' 
         });
-      } else {
-        // No active sessions, start from today
-        const startDate = new Date();
-        const endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + count - 1);
-        
-        return new Promise((resolve) => {
-          Alert.alert(
-            'Confirm Session Creation',
-            `${count} new session(s) will be created starting from ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}. Continue?`,
-            [
-              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-              { text: 'Create Sessions', onPress: () => resolve(true) }
-            ]
-          );
-        });
-      }
+      }).join(', ');
+      
+      return new Promise((resolve) => {
+        Alert.alert(
+          'Confirm Session Creation',
+          `${count} new session(s) will be created for ${patientName} on: ${dateList}. Continue?`,
+          [
+            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+            { text: 'Create Sessions', onPress: () => resolve(true) }
+          ]
+        );
+      });
     } catch (error) {
       console.error('Error showing confirmation:', error);
       return true; // Allow creation if confirmation fails
@@ -179,6 +165,24 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
     }
   };
 
+  const handleDatesSelect = (dates: string[]) => {
+    setSelectedDates(dates);
+    // Don't close the calendar automatically - let user manually close it
+  };
+
+  const formatSelectedDates = (dates: string[]): string => {
+    if (dates.length === 0) return 'No dates selected';
+    if (dates.length === 1) {
+      const date = new Date(dates[0]);
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    }
+    return `${dates.length} dates selected`;
+  };
+
 
   const getPatientNameById = (id: string): string => {
     const patient = patients.find(p => p.id === id);
@@ -203,7 +207,6 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
       
       const patientName = getPatientNameById(patientId);
       const formattedTime = formatTimeForStorage(time);
-      const count = parseInt(sessionCount, 10);
       
       if (existingSession) {
         // For editing existing session, we still use the original date
@@ -229,37 +232,28 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
         
         await updateSession(updatedSessionData);
         
+        // Cancel existing notification for this session
+        try {
+          await cancelSessionNotification(`session_${updatedSessionData.id}_*`);
+          console.log('✅ Previous session notification cancelled for:', updatedSessionData.patientName);
+        } catch (cancelError) {
+          console.error('❌ Error cancelling previous session notification:', cancelError);
+          // Don't throw error - continue with scheduling
+        }
+        
         // Schedule notification for the updated session
         await scheduleSessionNotification(updatedSessionData);
         
         onSave(updatedSessionData);
       } else {
-        // Create multiple sessions starting from calculated start date
+        // Create sessions for selected dates
         const sessions = [];
         
-        // Calculate start date based on patient's last active session
-        let startDate = new Date();
-        try {
-          const lastActiveDate = await getLastActiveSessionDate(patientId);
-          if (lastActiveDate) {
-            const lastActiveDateObj = new Date(lastActiveDate);
-            startDate = new Date(lastActiveDateObj);
-            startDate.setDate(lastActiveDateObj.getDate() + 1); // Start from day after last active session
-          }
-        } catch (error) {
-          console.error('Error getting last active date, using today:', error);
-          // Use today as fallback
-        }
-        
-        for (let i = 0; i < count; i++) {
-          const sessionDate = new Date(startDate);
-          sessionDate.setDate(startDate.getDate() + i);
-          const formattedDate = formatDateForStorage(sessionDate);
-          
+        for (const dateString of selectedDates) {
           const sessionData: Omit<Session, 'id' | 'createdAt' | 'userId'> = {
             patientId,
             patientName,
-            date: formattedDate,
+            date: dateString, // Use the selected date directly
             time: formattedTime,
             notes,
             completed: false,
@@ -340,6 +334,20 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
                 updatedSessionData.amount = undefined;
               }
               
+              // Get all sessions for this patient from store (before update)
+              const allSessions = [...todaySessions, ...upcomingSessions];
+              const patientSessions = allSessions.filter(session => session.patientId === patientId);
+              console.log(`📋 Found ${patientSessions.length} sessions for patient: ${updatedSessionData.patientName}`);
+              
+              for (const session of patientSessions) {
+                try {
+                  await cancelSessionNotification(`session_${session.id}_*`);
+                } catch (cancelError) {
+                  console.error('❌ Error cancelling previous session notification:', cancelError);
+                }
+              }
+              
+              // Update sessions
               await updateSession(updatedSessionData);
               
               // Update all other sessions for this patient
@@ -359,6 +367,20 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
               
               Alert.alert('Success', 'Current session and all other sessions for this patient have been updated successfully!');
               onSave(updatedSessionData);
+
+              // Schedule notifications for all updated sessions
+              const updatedPatientSessions = patientSessions.map(session => ({
+                ...session,
+                time: formattedTime,
+              }));
+              
+              for (const session of updatedPatientSessions) {
+                try {
+                  await scheduleSessionNotification(session);
+                } catch (notificationError) {
+                  console.error('❌ Error scheduling session notification:', notificationError);
+                }
+              };
             } catch (error) {
               Alert.alert('Error', 'Failed to update sessions');
               console.error('Error updating all sessions:', error);
@@ -485,30 +507,36 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
         {errors.patientId ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.patientId}</Text> : null}
       </View>
       
-      {/* Session Count Input - Only show for new sessions */}
+      {/* Date Selection - Only show for new sessions */}
       {!existingSession && (
         <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: theme.textColor }]}>Number of Sessions</Text>
+          <Text style={[styles.label, { color: theme.textColor }]}>Session Dates</Text>
           <Text style={[styles.helpText, { color: theme.placeholderColor }]}>
-            Sessions will be created starting after the patient's last active session (or from today if no active sessions)
+            Select the dates when you want to create sessions
           </Text>
-          <TextInput
+          <TouchableOpacity 
             style={[
-              styles.input, 
+              styles.dateTimeButton, 
               { 
-                backgroundColor: theme.inputBackground,
-                borderColor: errors.sessionCount ? theme.errorColor : theme.borderColor,
-                color: theme.textColor
+                backgroundColor: theme.inputBackground, 
+                borderColor: errors.selectedDates ? theme.errorColor : theme.borderColor 
               }
             ]}
-            value={sessionCount}
-            onChangeText={setSessionCount}
-            placeholder="Enter number of sessions (1-365)"
-            placeholderTextColor={theme.placeholderColor}
-            keyboardType="numeric"
-            maxLength={3}
-          />
-          {errors.sessionCount ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.sessionCount}</Text> : null}
+            onPress={() => setShowMultiDateCalendar(true)}
+          >
+            <Text style={{ color: selectedDates.length > 0 ? theme.textColor : theme.placeholderColor }}>
+              {formatSelectedDates(selectedDates)}
+            </Text>
+          </TouchableOpacity>
+          {errors.selectedDates && <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.selectedDates}</Text>}
+          {selectedDates.length > 0 && (
+            <TouchableOpacity 
+              style={styles.clearDatesButton}
+              onPress={() => setSelectedDates([])}
+            >
+              <Text style={[styles.clearDatesText, { color: theme.primaryColor }]}>Clear all dates</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -688,6 +716,17 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
       
       {/* Time Picker */}
       {renderTimePicker()}
+
+      {/* Multi-Date Calendar Modal */}
+      <MultiDateCalendar
+        visible={showMultiDateCalendar}
+        onClose={() => setShowMultiDateCalendar(false)}
+        onDatesSelect={handleDatesSelect}
+        selectedDates={selectedDates}
+        title="Select Session Dates"
+        theme={theme}
+        isDarkMode={isDarkMode}
+      />
       </View>
     </TouchableWithoutFeedback>
   );
@@ -818,6 +857,14 @@ const styles = StyleSheet.create({
   },
   datePicker: {
     height: 200,
+  },
+  clearDatesButton: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  clearDatesText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   checkboxContainer: {
     flexDirection: 'row',
