@@ -447,13 +447,13 @@ export default function PastScreen() {
           data={displaySessions}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => {
-            // Allow editing only for unmarked sessions (not completed and not cancelled)
-            const allowEdit = !item.completed && !item.cancelled;
+            // Allow editing for unmarked sessions and cancelled sessions (not completed)
+            const allowEdit = !item.completed;
             
             return (
               <SessionCard
                 session={item}
-                onEdit={allowEdit ? (session) => handleEditSession(session) : () => Alert.alert('Info', 'Cannot edit completed or cancelled sessions')}
+                onEdit={allowEdit ? (session) => handleEditSession(session) : () => Alert.alert('Info', 'Cannot edit completed sessions')}
                 onDelete={(sessionId) => handleDeleteSession(sessionId)} 
                 onToggleComplete={(session, completed) => {
                   // Only allow marking incomplete sessions as complete
@@ -463,7 +463,7 @@ export default function PastScreen() {
                     handleToggleComplete(session, completed);
                   }
                 }}
-                allowEdit={allowEdit}
+                allowEdit={allowEdit} // Hide edit button for completed sessions only
               />
             );
           }}

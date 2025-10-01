@@ -69,6 +69,7 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showMultiDateCalendar, setShowMultiDateCalendar] = useState(false);
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [showOtherFields, setShowOtherFields] = useState(false);
 
   // Check if any field has been changed from original value
   const isAnyFieldChanged = () => {
@@ -83,6 +84,13 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
     // If there's only one patient and no patient is selected, select it automatically
     if (patients.length === 1 && !patientId) {
       setPatientId(patients[0].id);
+    }
+    
+    // Show other fields when patient is selected
+    if (patientId) {
+      setShowOtherFields(true);
+    } else {
+      setShowOtherFields(false);
     }
   }, [patients, patientId]);
 
@@ -457,6 +465,17 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
         <Text style={[styles.title, { color: theme.textColor }]}>
           {existingSession ? 'Edit Session' : 'Add New Sessions'}
         </Text>
+        
+      
+      {/* Close button (×) in top right corner - only show when no patient is selected */}
+      {!existingSession && !showOtherFields && (
+        <TouchableOpacity
+          style={[styles.closeButton, { backgroundColor: theme.cancelButtonBg }]}
+          onPress={onCancel}
+        >
+          <Text style={[styles.closeButtonText, { color: theme.textColor }]}>×</Text>
+        </TouchableOpacity>
+      )}
       
       {/* Patient Selector */}
       <View style={styles.formGroup}>
@@ -507,8 +526,18 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
         {errors.patientId ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.patientId}</Text> : null}
       </View>
       
-      {/* Date Selection - Only show for new sessions */}
-      {!existingSession && (
+      {/* Help message when no patient is selected */}
+      {!showOtherFields && !existingSession && (
+        <View style={styles.helpContainer}>
+          <Text style={[styles.helpMessage, { color: theme.placeholderColor }]}>
+            Please select a patient first to continue with session creation
+          </Text>
+        </View>
+      )}
+      
+      
+      {/* Date Selection - Only show for new sessions and when patient is selected */}
+      {!existingSession && showOtherFields && (
         <View style={styles.formGroup}>
           <Text style={[styles.label, { color: theme.textColor }]}>Session Dates</Text>
           <Text style={[styles.helpText, { color: theme.placeholderColor }]}>
@@ -542,61 +571,67 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
 
 
       
-      {/* Time Selector */}
-      <View style={styles.formGroup}>
-        <Text style={[styles.label, { color: theme.textColor }]}>Time</Text>
-        <TouchableOpacity 
-          style={[styles.dateTimeButton, { backgroundColor: theme.inputBackground, borderColor: theme.borderColor }]}
-          onPress={() => setShowTimePicker(true)}
-        >
-          <Text style={{ color: theme.textColor }}>{formatTimeForDisplay(time)}</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Time Selector - Show when patient is selected */}
+      {showOtherFields && (
+        <View style={styles.formGroup}>
+          <Text style={[styles.label, { color: theme.textColor }]}>Time</Text>
+          <TouchableOpacity 
+            style={[styles.dateTimeButton, { backgroundColor: theme.inputBackground, borderColor: theme.borderColor }]}
+            onPress={() => setShowTimePicker(true)}
+          >
+            <Text style={{ color: theme.textColor }}>{formatTimeForDisplay(time)}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       
-      {/* Notes Input */}
-      <View style={styles.formGroup}>
-        <Text style={[styles.label, { color: theme.textColor }]}>Notes</Text>
-        <TextInput
-          style={[
-            styles.textArea, 
-            { 
-              backgroundColor: theme.inputBackground,
-              borderColor: theme.borderColor,
-              color: theme.textColor
-            }
-          ]}
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Add session notes (optional)"
-          placeholderTextColor={theme.placeholderColor}
-          multiline={true}
-          numberOfLines={4}
-        />
-      </View>
+      {/* Notes Input - Show when patient is selected */}
+      {showOtherFields && (
+        <View style={styles.formGroup}>
+          <Text style={[styles.label, { color: theme.textColor }]}>Notes</Text>
+          <TextInput
+            style={[
+              styles.textArea, 
+              { 
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.borderColor,
+                color: theme.textColor
+              }
+            ]}
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Add session notes (optional)"
+            placeholderTextColor={theme.placeholderColor}
+            multiline={true}
+            numberOfLines={4}
+          />
+        </View>
+      )}
       
-      {/* Amount Input */}
-      <View style={styles.formGroup}>
-        <Text style={[styles.label, { color: theme.textColor }]}>Amount ($)</Text>
-        <TextInput
-          style={[
-            styles.input, 
-            { 
-              backgroundColor: theme.inputBackground,
-              borderColor: errors.amount ? theme.errorColor : theme.borderColor,
-              color: theme.textColor
-            }
-          ]}
-          value={amount}
-          onChangeText={setAmount}
-          placeholder="Enter amount (optional)"
-          placeholderTextColor={theme.placeholderColor}
-          keyboardType="decimal-pad"
-        />
-        {errors.amount ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.amount}</Text> : null}
-      </View>
+      {/* Amount Input - Show when patient is selected */}
+      {showOtherFields && (
+        <View style={styles.formGroup}>
+          <Text style={[styles.label, { color: theme.textColor }]}>Amount (₹)</Text>
+          <TextInput
+            style={[
+              styles.input, 
+              { 
+                backgroundColor: theme.inputBackground,
+                borderColor: errors.amount ? theme.errorColor : theme.borderColor,
+                color: theme.textColor
+              }
+            ]}
+            value={amount}
+            onChangeText={setAmount}
+            placeholder="Enter amount (optional)"
+            placeholderTextColor={theme.placeholderColor}
+            keyboardType="decimal-pad"
+          />
+          {errors.amount ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.amount}</Text> : null}
+        </View>
+      )}
       
-      {/* Cancelled Checkbox - Only show when editing existing session */}
-      {existingSession && (
+      {/* Cancelled Checkbox - Only show when editing existing session and patient is selected */}
+      {existingSession && showOtherFields && (
         <View style={styles.formGroup}>
           <TouchableOpacity
             style={styles.checkboxContainer}
@@ -623,37 +658,39 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
         </View>
       )}
       
-      {/* Buttons */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[
-            styles.button, 
-            { backgroundColor: theme.cancelButtonBg },
-            (isSubmitting || isUpdatingAll) ? styles.disabledButton : null
-          ]}
-          onPress={onCancel}
-          disabled={isSubmitting || isUpdatingAll}
-        >
-          <Text style={[styles.cancelButtonText, { color: theme.textColor }]}>Cancel</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[
-            styles.button, 
-            { backgroundColor: theme.primaryColor },
-            (isSubmitting || isUpdatingAll) ? styles.disabledButton : null
-          ]}
-          onPress={handleSubmit}
-          disabled={isSubmitting || isUpdatingAll || patients.length === 0}
-        >
-          <Text style={styles.saveButtonText}>
-            {isSubmitting ? 'Saving...' : existingSession ? 'Update' : 'Save'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* Buttons - Show when patient is selected */}
+      {showOtherFields && (
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[
+              styles.button, 
+              { backgroundColor: theme.cancelButtonBg },
+              (isSubmitting || isUpdatingAll) ? styles.disabledButton : null
+            ]}
+            onPress={onCancel}
+            disabled={isSubmitting || isUpdatingAll}
+          >
+            <Text style={[styles.cancelButtonText, { color: theme.textColor }]}>Cancel</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[
+              styles.button, 
+              { backgroundColor: theme.primaryColor },
+              (isSubmitting || isUpdatingAll) ? styles.disabledButton : null
+            ]}
+            onPress={handleSubmit}
+            disabled={isSubmitting || isUpdatingAll || patients.length === 0}
+          >
+            <Text style={styles.saveButtonText}>
+              {isSubmitting ? 'Saving...' : existingSession ? 'Update' : 'Save'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
       
-      {/* Update All button - only show when editing existing session AND fields have been changed AND showUpdateAll is true AND not cancelled */}
-      {existingSession && isAnyFieldChanged() && showUpdateAll && !cancelled && (
+      {/* Update All button - only show when editing existing session AND fields have been changed AND showUpdateAll is true AND not cancelled AND patient is selected */}
+      {existingSession && showOtherFields && isAnyFieldChanged() && showUpdateAll && !cancelled && (
         <View style={styles.updateAllContainer}>
           <TouchableOpacity
             style={[
@@ -726,6 +763,8 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
         title="Select Session Dates"
         theme={theme}
         isDarkMode={isDarkMode}
+        patientId={patientId}
+        existingSessions={[...todaySessions, ...upcomingSessions]}
       />
       </View>
     </TouchableWithoutFeedback>
@@ -762,16 +801,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
+    borderColor: '#DDDDDD',
   },
   textArea: {
     height: 100,
     textAlignVertical: 'top',
+    borderWidth: 1,
+    borderRadius: 8,
+    borderColor: '#DDDDDD',
   },
   dateTimeButton: {
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
+    borderColor: '#DDDDDD',
   },
   dateDisplay: {
     borderWidth: 1,
@@ -900,5 +944,34 @@ const styles = StyleSheet.create({
   updateAllButtonText: {
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  helpContainer: {
+    marginTop: 20,
+    marginBottom: 20,
+    padding: 16,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  helpMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  closeButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

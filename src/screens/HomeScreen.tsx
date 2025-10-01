@@ -195,14 +195,21 @@ export default function TodayScreen() {
           data={todaySessions}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <SessionCard
-              session={item}
-              onEdit={handleEditSession}
-              onDelete={handleDeleteSession}
-              onToggleComplete={handleToggleComplete}
-            />
-          )}
+          renderItem={({ item }) => {
+            // Allow editing for unmarked sessions and cancelled sessions (not completed)
+            const allowEdit = !item.completed;
+            
+            return (
+              <SessionCard
+                session={item}
+                onEdit={allowEdit ? handleEditSession : () => Alert.alert('Info', 'You need to unmark the session first to edit')}
+                onDelete={handleDeleteSession}
+                onToggleComplete={handleToggleComplete}
+                allowEdit={true} // Always show edit button
+                editDisabled={!allowEdit} // Disable when completed
+              />
+            );
+          }}
           refreshControl={
             <RefreshControl
               refreshing={sessionsLoading}

@@ -28,6 +28,7 @@ export default function UpcomingScreen() {
   const [isFiltered, setIsFiltered] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
+  const [hideCancelled, setHideCancelled] = useState(true); // Hide cancelled by default
 
   // Use global state instead of local state
   const { 
@@ -86,8 +87,9 @@ export default function UpcomingScreen() {
       filtered = filtered.filter(session => !session.cancelled);
     }
 
-    // For upcoming screen, ensure we only show upcoming sessions (not completed/cancelled)
-    filtered = filtered.filter(session => !session.completed && !session.cancelled);
+    // For upcoming screen, ensure we only show upcoming sessions (not completed)
+    // Cancelled sessions are now included but can be hidden with checkbox
+    filtered = filtered.filter(session => !session.completed);
 
     return filtered;
   }, []);
@@ -116,8 +118,19 @@ export default function UpcomingScreen() {
     }
   }, [patientId, upcomingSessions, filterSessionsLocally]);
 
-  // Get the sessions to display (filtered or global)
-  const displaySessions = isFiltered ? filteredSessions : upcomingSessions;
+  // Get the sessions to display (filtered or global) with cancelled filter
+  const getDisplaySessions = useCallback(() => {
+    const sessions = isFiltered ? filteredSessions : upcomingSessions;
+    
+    // Apply hide cancelled filter
+    if (hideCancelled) {
+      return sessions.filter(session => !session.cancelled);
+    }
+    
+    return sessions;
+  }, [isFiltered, filteredSessions, upcomingSessions, hideCancelled]);
+
+  const displaySessions = getDisplaySessions();
 
   const handleApplyFilter = (filters: any) => {
     setShowFilter(false); // Hide filter after applying
@@ -264,6 +277,7 @@ export default function UpcomingScreen() {
         message="Failed to refresh data" 
       />
 
+
       {sessionsLoading ? (
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color={theme.primaryColor} />
@@ -323,6 +337,23 @@ export default function UpcomingScreen() {
         onSave={handleSaveSession}
       />
 
+      {/* Hide Cancelled Sessions Checkbox - Bottom */}
+      <View style={[styles.checkboxContainer, { backgroundColor: theme.cardBackground, borderColor: theme.borderColor }]}>
+        <TouchableOpacity 
+          style={styles.checkboxRow}
+          onPress={() => setHideCancelled(!hideCancelled)}
+        >
+          <View style={[styles.checkbox, { borderColor: theme.borderColor }]}>
+            {hideCancelled && (
+              <Text style={[styles.checkmark, { color: theme.primaryColor }]}>✓</Text>
+            )}
+          </View>
+          <Text style={[styles.checkboxLabel, { color: theme.textColor }]}>
+            Hide cancelled sessions
+          </Text>
+        </TouchableOpacity>
+      </View>
+
     </View>
   );
 }
@@ -374,6 +405,34 @@ const styles = StyleSheet.create({
   },
   statusBarContainer: {
     marginBottom: 10,
+  },
+  checkboxContainer: {
+    marginHorizontal: 15,
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderRadius: 4,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkmark: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    flex: 1,
   },
   centerContent: {
     flex: 1,

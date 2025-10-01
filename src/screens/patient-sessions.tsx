@@ -150,16 +150,22 @@ export default function PatientSessionsScreen() {
     await loadSessions();
   };
 
-  const renderSessionCard = ({ item }: { item: Session }) => (
-    <SessionCard
-      session={item}
-      onEdit={handleEditSession}
-      onDelete={handleDeleteSession}
-      onToggleComplete={handleToggleComplete}
-      showCompleteToggle={false}
-      allowEdit={!showCompletedSessions} // Allow edit only for upcoming sessions
-    />
-  );
+  const renderSessionCard = ({ item }: { item: Session }) => {
+    // Allow editing for unmarked sessions and cancelled sessions (not completed)
+    const allowEdit = !item.completed;
+    
+    return (
+      <SessionCard
+        session={item}
+        onEdit={allowEdit ? handleEditSession : () => Alert.alert('Info', 'You need to unmark the session first to edit')}
+        onDelete={handleDeleteSession}
+        onToggleComplete={handleToggleComplete}
+        showCompleteToggle={false}
+        allowEdit={true} // Always show edit button
+        editDisabled={!allowEdit} // Disable when completed
+      />
+    );
+  };
 
   const renderEmptyState = () => {
     const patient = patients.find(p => p.id === patientId);

@@ -35,7 +35,6 @@ const createNotificationChannel = async (): Promise<string> => {
         lightColor: '#FF6B35',
       });
 
-      console.log('✅ Notifee channel created:', channelId);
       return channelId || 'default';
     } catch (error) {
       console.error('❌ Error creating Notifee channel:', error);

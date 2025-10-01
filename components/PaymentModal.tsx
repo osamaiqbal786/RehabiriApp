@@ -92,7 +92,7 @@ export default function PaymentModal({ visible, session, onConfirm, onCancel, is
           </Text>
           
           <View style={styles.inputContainer}>
-            <Text style={[styles.label, { color: theme.textColor }]}>Amount Paid ($)</Text>
+            <Text style={[styles.label, { color: theme.textColor }]}>Amount Paid (₹)</Text>
             <TextInput
               style={[
                 styles.input, 
