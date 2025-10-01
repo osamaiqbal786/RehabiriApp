@@ -11,9 +11,10 @@ interface SessionCardProps {
   isUpcoming?: boolean;
   showCompleteToggle?: boolean;
   allowEdit?: boolean;
+  editDisabled?: boolean;
 }
 
-export default function SessionCard({ session, onEdit, onDelete, onToggleComplete, isUpcoming = false, showCompleteToggle = true, allowEdit = true }: SessionCardProps) {
+export default function SessionCard({ session, onEdit, onDelete, onToggleComplete, isUpcoming = false, showCompleteToggle = true, allowEdit = true, editDisabled = false }: SessionCardProps) {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
 
@@ -80,10 +81,13 @@ export default function SessionCard({ session, onEdit, onDelete, onToggleComplet
             )}
             {allowEdit && (
               <TouchableOpacity 
-                style={styles.iconButton}
+                style={[
+                  styles.iconButton,
+                  editDisabled && styles.disabledButton
+                ]}
                 onPress={() => onEdit(session)}
               >
-                <Edit size={20} color={theme.primaryColor} />
+                <Edit size={20} color={editDisabled ? theme.actionButtonColor : theme.primaryColor} />
               </TouchableOpacity>
             )}
             <TouchableOpacity 
@@ -243,5 +247,8 @@ const styles = StyleSheet.create({
   amountText: {
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 });

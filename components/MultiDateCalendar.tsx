@@ -16,6 +16,8 @@ interface MultiDateCalendarProps {
   title?: string;
   theme?: any;
   isDarkMode?: boolean;
+  patientId?: string;
+  existingSessions?: any[];
 }
 
 const MultiDateCalendar: React.FC<MultiDateCalendarProps> = ({
@@ -25,9 +27,22 @@ const MultiDateCalendar: React.FC<MultiDateCalendarProps> = ({
   selectedDates = [],
   title = 'Select Session Dates',
   theme,
+  patientId,
+  existingSessions = [],
 }) => {
   const [tempSelectedDates, setTempSelectedDates] = useState<string[]>([]);
   const today = new Date().toISOString().split('T')[0];
+
+  // Get booked dates for this patient
+  const getBookedDates = useCallback(() => {
+    if (!patientId || !existingSessions.length) return [];
+    
+    return existingSessions
+      .filter(session => session.patientId === patientId)
+      .map(session => session.date);
+  }, [patientId, existingSessions]);
+
+  const bookedDates = getBookedDates();
 
   // Initialize when modal opens
   useEffect(() => {
@@ -37,20 +52,20 @@ const MultiDateCalendar: React.FC<MultiDateCalendarProps> = ({
   }, [visible, selectedDates]);
 
   const handleDatePress = useCallback((day: any) => {
-    console.log('🗓️ Date pressed:', day);
     const dateString = day.dateString;
-    console.log('🗓️ Date string:', dateString);
-    console.log('🗓️ Current selected dates before:', tempSelectedDates);
+    
+    // Check if date is already booked for this patient
+    if (bookedDates.includes(dateString)) {
+      return; // Don't allow selection of booked dates
+    }
     
     setTempSelectedDates(prev => {
-      console.log('🗓️ Previous state:', prev);
       const newDates = prev.includes(dateString)
         ? prev.filter(date => date !== dateString)
         : [...prev, dateString].sort();
-      console.log('🗓️ New dates after update:', newDates);
       return newDates;
     });
-  }, [tempSelectedDates]);
+  }, [bookedDates]);
 
   const handleConfirm = useCallback(() => {
     onDatesSelect(tempSelectedDates);
@@ -70,9 +85,11 @@ const MultiDateCalendar: React.FC<MultiDateCalendarProps> = ({
     setTempSelectedDates(prev => prev.filter(date => date !== dateToRemove));
   }, []);
 
-  // Create marked dates object - very simple and stable
+  // Create marked dates object with booked dates and selected dates
   const markedDates = React.useMemo(() => {
     const marked: any = {};
+    
+    // Mark selected dates
     tempSelectedDates.forEach(date => {
       marked[date] = {
         selected: true,
@@ -80,8 +97,21 @@ const MultiDateCalendar: React.FC<MultiDateCalendarProps> = ({
         selectedTextColor: '#FFFFFF',
       };
     });
+    
+    // Mark booked dates (disabled)
+    bookedDates.forEach(date => {
+      if (!tempSelectedDates.includes(date)) {
+        marked[date] = {
+          disabled: true,
+          disabledColor: '#FF3B30',
+          textColor: '#FF3B30',
+          dotColor: '#FF3B30',
+        };
+      }
+    });
+    
     return marked;
-  }, [tempSelectedDates]);
+  }, [tempSelectedDates, bookedDates]);
 
   const formatDate = useCallback((dateString: string): string => {
     const date = new Date(dateString);
@@ -91,6 +121,7 @@ const MultiDateCalendar: React.FC<MultiDateCalendarProps> = ({
       day: 'numeric' 
     });
   }, []);
+
 
   if (!visible) return null;
 
@@ -113,7 +144,7 @@ const MultiDateCalendar: React.FC<MultiDateCalendarProps> = ({
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.selectedDatesList}>
                     {tempSelectedDates.map((date) => (
-                      <View key={date} style={styles.selectedDateChip}>
+                      <TouchableOpacity key={date} style={styles.selectedDateChip} onPress={() => {}}>
                         <Text style={styles.selectedDateText}>{formatDate(date)}</Text>
                         <TouchableOpacity
                           style={styles.removeDateButton}
@@ -121,7 +152,7 @@ const MultiDateCalendar: React.FC<MultiDateCalendarProps> = ({
                         >
                           <Text style={styles.removeDateText}>×</Text>
                         </TouchableOpacity>
-                      </View>
+                      </TouchableOpacity>
                     ))}
                   </View>
                 </ScrollView>
