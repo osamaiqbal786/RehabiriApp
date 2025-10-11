@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { User } from '../types';
 import { getCurrentUser, loginUser, logoutUser, registerUser, updateUser, resetPassword as resetUserPassword } from './mongoAuth';
+import { sendFCMTokenToServer } from './fcmService';
 
 interface AuthContextType {
   user: Omit<User, 'password'> | null;
@@ -39,6 +40,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(true);
       const response = await loginUser(email, password);
       setUser(response.user);
+      
+      // Send FCM token to server after successful login
+      await sendFCMTokenToServer();
     } catch (error) {
       console.error('Login error:', error);
       throw error;

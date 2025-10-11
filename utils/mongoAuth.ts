@@ -93,6 +93,13 @@ export const loginUser = async (email: string, password: string): Promise<{ user
 
     // Store the JWT token
     await storeToken(response.token);
+    
+    // 🔑 LOG JWT TOKEN FOR ADMIN DASHBOARD
+    console.log('🔑 JWT TOKEN FOR ADMIN DASHBOARD:');
+    console.log('=====================================');
+    console.log(response.token);
+    console.log('=====================================');
+    console.log('Copy this token and paste it in the admin dashboard!');
 
     return response;
   } catch (error) {

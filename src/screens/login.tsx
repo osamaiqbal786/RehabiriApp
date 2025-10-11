@@ -18,6 +18,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../utils/AuthContext';
 import { useAppState } from '../hooks/useAppState';
+import { useNotifications } from '../context/NotificationContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PermissionRequest from '../components/PermissionRequest';
 
@@ -27,6 +28,7 @@ export default function LoginScreen() {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const { login, isLoading } = useAuth();
   const { dispatch } = useAppState();
+  const { initializeFCMForAuthenticatedUser } = useNotifications();
   const navigation = useNavigation();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
@@ -83,6 +85,9 @@ export default function LoginScreen() {
 
     try {
       await login(email, password);
+      
+      // Initialize FCM for authenticated user
+      await initializeFCMForAuthenticatedUser();
       
       // Trigger data refresh after successful login
       dispatch({ type: 'TRIGGER_PATIENTS_REFRESH' });

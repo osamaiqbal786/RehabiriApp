@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "165880387601",
+    "project_id": "rehabiri",
+    "storage_bucket": "rehabiri.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:165880387601:android:a8708fed23b2d7993839b0",
+        "android_client_info": {
+          "package_name": "com.rehabiriapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAg6k3qwTsMV18qtqy6O4bOfu1YlyGKDTo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

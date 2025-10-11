@@ -30,6 +30,40 @@ export interface SessionFilter {
   includeCancelled?: boolean; // Include cancelled sessions in filter
 }
 
+export interface Event {
+  id: string;
+  title: string;
+  description: string;
+  shortDescription: string;
+  eventDate: string;
+  eventTime: string;
+  location: {
+    pincode: string;
+    state: string;
+    city: string;
+    address: string;
+  };
+  image: {
+    url: string;
+    thumbnail: string;
+    alt: string;
+  };
+  category: 'workshop' | 'seminar' | 'meetup' | 'conference' | 'training' | 'other';
+  tags: string[];
+  maxAttendees?: number;
+  currentAttendees: number;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  eligiblePincodes: string[];
+}
+
+export interface EventLocation {
+  pincode: string;
+  state: string;
+}
+
 export interface User {
   id: string;
   email: string;

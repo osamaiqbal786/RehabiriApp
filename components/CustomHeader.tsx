@@ -4,14 +4,16 @@ import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ProfileDropdown from '../src/components/ProfileDropdown';
+import BellIcon from './BellIcon';
 
 interface CustomHeaderProps {
   title: string;
   showBackButton?: boolean;
   hideProfileDropdown?: boolean;
+  showBellIcon?: boolean;
 }
 
-export default function CustomHeader({ title, showBackButton = false, hideProfileDropdown = false }: CustomHeaderProps) {
+export default function CustomHeader({ title, showBackButton = false, hideProfileDropdown = false, showBellIcon = false }: CustomHeaderProps) {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const navigation = useNavigation();
@@ -55,7 +57,9 @@ export default function CustomHeader({ title, showBackButton = false, hideProfil
           {!hideProfileDropdown && <ProfileDropdown />}
         </View>
         <Text style={[styles.title, { color: theme.textColor }]}>{title}</Text>
-        <View style={styles.rightPlaceholder} />
+        <View style={styles.rightContainer}>
+          {showBellIcon && <BellIcon />}
+        </View>
       </View>
     </View>
   );
@@ -94,7 +98,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     zIndex: 900,
   },
-  rightPlaceholder: {
-    width: 40, // To balance the header
+  rightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 1001,
   },
 }); 

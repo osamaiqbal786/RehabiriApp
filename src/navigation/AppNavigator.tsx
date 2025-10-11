@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useColorScheme } from 'react-native';
 import { Calendar, Clock, Users } from 'lucide-react-native';
+import { setNavigationRef } from '../../utils/navigationService';
 
 // Import screens
 import SplashScreen from '../screens/splash';
@@ -20,6 +21,8 @@ import PatientSessionsScreen from '../screens/patient-sessions';
 import ProfileScreen from '../screens/profile';
 import EarningsScreen from '../screens/earnings';
 import EarningsDetailScreen from '../screens/earnings-detail';
+import NotificationsScreen from '../screens/NotificationsScreen';
+import EventDetailScreen from '../screens/EventDetailScreen';
 
 // Import components
 import CustomHeader from '../../components/CustomHeader';
@@ -59,7 +62,7 @@ function TabNavigator() {
             }
           }
           
-          return <CustomHeader title={title} />;
+          return <CustomHeader title={title} showBellIcon={true} />;
         },
         tabBarActiveTintColor: colorScheme === 'dark' ? '#4F8EF7' : '#0A84FF',
         tabBarInactiveTintColor: colorScheme === 'dark' ? '#8E8E93' : '#8E8E93',
@@ -113,9 +116,26 @@ function TabNavigator() {
 }
 
 // Main App Navigator
-export default function AppNavigator() {
+const AppNavigator = forwardRef((props, ref) => {
+  const navigationRef = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    navigate: (screen: string, params?: any) => {
+      if (navigationRef.current) {
+        (navigationRef.current as any).navigate(screen, params);
+      }
+    }
+  }));
+
+  // Set the navigation ref for global navigation
+  const onNavigationReady = () => {
+    if (navigationRef.current) {
+      setNavigationRef(navigationRef.current);
+    }
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef} onReady={onNavigationReady}>
       <Stack.Navigator
         initialRouteName="Splash"
         screenOptions={{
@@ -165,13 +185,32 @@ export default function AppNavigator() {
             header: ({ route }) => {
               const params = route.params as { year?: number; month?: string } || {};
               const title = params.year && params.month 
-                ? `Earnings - ${new Date(params.year, parseInt(params.month) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
+                ? `Earnings - ${new Date(params.year, parseInt(params.month, 10) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
                 : 'Earnings Detail';
               return <CustomHeader title={title} showBackButton={true} hideProfileDropdown={true} />;
             },
           }}
         />
+        <Stack.Screen 
+          name="Notifications" 
+          component={NotificationsScreen}
+          options={{
+            headerShown: true,
+            header: () => <CustomHeader title="Events & Notifications" showBackButton={true} hideProfileDropdown={true} />,
+          }}
+        />
+        <Stack.Screen 
+          name="EventDetail" 
+          component={EventDetailScreen}
+          options={{
+            headerShown: false, // Custom header in component
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
-}
+});
+
+AppNavigator.displayName = 'AppNavigator';
+
+export default AppNavigator;
