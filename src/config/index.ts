@@ -1,6 +1,6 @@
 // Simple, direct configuration - no external dependencies
 export const API_CONFIG = {
-  BASE_URL: 'http://13.62.52.14:3000',
+  BASE_URL: 'https://rehabiri.com',
   TIMEOUT: 10000, // 10 seconds
   ENDPOINTS: {
     AUTH: '/api/auth',
