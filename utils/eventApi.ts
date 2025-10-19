@@ -1,28 +1,21 @@
 import { Event, EventLocation } from '../types';
 import { API_CONFIG } from '../src/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiCall, getAuthHeaders } from './apiInterceptor';
 
 /**
  * Get events by location
  */
 export const getEventsByLocation = async (location: EventLocation, page: number = 1, limit: number = 10): Promise<{ events: Event[], pagination: any }> => {
   try {
-    const token = await getAuthToken();
-    const response = await fetch(`${API_CONFIG.BASE_URL}/api/events/location?pincode=${location.pincode}&state=${location.state}&page=${page}&limit=${limit}`, {
+    const authHeaders = await getAuthHeaders();
+    const data = await apiCall(`/api/events/location?pincode=${location.pincode}&state=${location.state}&page=${page}&limit=${limit}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
+      headers: authHeaders,
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
     console.log('Events API response:', data);
-    console.log('Events found:', data.data?.events?.length || 0);
+    console.log('Events found:', data.data?.events?.events?.length || 0);
     return data.data;
   } catch (error) {
     console.error('Error fetching events by location:', error);
@@ -35,20 +28,12 @@ export const getEventsByLocation = async (location: EventLocation, page: number 
  */
 export const getEventById = async (eventId: string): Promise<Event> => {
   try {
-    const token = await getAuthToken();
-    const response = await fetch(`${API_CONFIG.BASE_URL}/api/events/${eventId}`, {
+    const authHeaders = await getAuthHeaders();
+    const data = await apiCall(`/api/events/${eventId}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
+      headers: authHeaders,
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
     return data.data.event;
   } catch (error) {
     console.error('Error fetching event by ID:', error);

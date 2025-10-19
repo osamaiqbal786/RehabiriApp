@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, Platform } from 'react-native';
 import { Session } from '../types';
 import { Clock, CheckCircle, Edit, Trash2, IndianRupee, XCircle } from 'lucide-react-native';
@@ -14,7 +14,7 @@ interface SessionCardProps {
   editDisabled?: boolean;
 }
 
-export default function SessionCard({ session, onEdit, onDelete, onToggleComplete, isUpcoming = false, showCompleteToggle = true, allowEdit = true, editDisabled = false }: SessionCardProps) {
+const SessionCard = memo(function SessionCard({ session, onEdit, onDelete, onToggleComplete, isUpcoming = false, showCompleteToggle = true, allowEdit = true, editDisabled = false }: SessionCardProps) {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
 
@@ -149,7 +149,7 @@ export default function SessionCard({ session, onEdit, onDelete, onToggleComplet
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {
@@ -252,3 +252,5 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 });
+
+export default SessionCard;

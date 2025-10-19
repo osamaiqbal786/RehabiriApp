@@ -223,6 +223,18 @@ export default function UpcomingScreen() {
     }
   };
 
+  // Memoized render function for better performance
+  const renderSessionItem = useCallback(({ item }: { item: Session }) => (
+    <SessionCard
+      key={item.id}
+      session={item}
+      isUpcoming={true}
+      onEdit={(session) => handleEditSession(session)}
+      onDelete={(sessionId) => handleDeleteSession(sessionId)}
+      onToggleComplete={(session, completed) => handleToggleComplete(session, completed)}
+    />
+  ), [handleEditSession, handleDeleteSession, handleToggleComplete]);
+
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
       <View style={styles.header}>
@@ -309,17 +321,17 @@ export default function UpcomingScreen() {
         <FlatList
           data={displaySessions}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <SessionCard
-              key={item.id}
-              session={item}
-              isUpcoming={true}
-              onEdit={(session) => handleEditSession(session)}
-              onDelete={(sessionId) => handleDeleteSession(sessionId)}
-              onToggleComplete={(session, completed) => handleToggleComplete(session, completed)}
-            />
-          )}
+          renderItem={renderSessionItem}
           contentContainerStyle={styles.listContent}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          removeClippedSubviews={true}
+          getItemLayout={(data, index) => ({
+            length: 120, // Approximate height of each item
+            offset: 120 * index,
+            index,
+          })}
           refreshControl={
             <RefreshControl
               refreshing={sessionsLoading}

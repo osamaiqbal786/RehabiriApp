@@ -117,25 +117,30 @@ export const handleNotificationNavigation = (remoteMessage: any) => {
         const { navigate } = require('./navigationService');
         navigate('EventDetail', { eventId: data.eventId });
         
-        // Clear the event ID after successful navigation
-        setTimeout(() => {
-          AsyncStorage.removeItem('pendingEventId');
-        }, 500);
+        // Only clear if navigation actually succeeded (check if navigationRef exists)
+        const { getNavigationRef } = require('./navigationService');
+        if (getNavigationRef()) {
+          setTimeout(() => {
+            AsyncStorage.removeItem('pendingEventId');
+          }, 2000);
+        }
       } catch (navError) {
-        // If immediate navigation fails, try again after a short delay
+        // If immediate navigation fails, try again after a longer delay for cold start
         setTimeout(() => {
           try {
-            const { navigate } = require('./navigationService');
+            const { navigate, getNavigationRef } = require('./navigationService');
             navigate('EventDetail', { eventId: data.eventId });
             
-            // Clear the event ID after navigation
-            setTimeout(() => {
-              AsyncStorage.removeItem('pendingEventId');
-            }, 500);
+            // Only clear if navigation actually succeeded
+            if (getNavigationRef()) {
+              setTimeout(() => {
+                AsyncStorage.removeItem('pendingEventId');
+              }, 2000);
+            }
           } catch (retryError) {
-            // Navigation will be handled by global handler
+            // Don't clear pendingEventId - let global handler deal with it
           }
-        }, 500);
+        }, 2000);
       }
     }
   } catch (error) {

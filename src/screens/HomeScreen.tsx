@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, useColorScheme, ActivityIndicator, RefreshControl, KeyboardAvoidingView, Platform } from 'react-native';
 import { Plus } from 'lucide-react-native';
 import { Session } from '../../types';
@@ -136,6 +136,23 @@ export default function TodayScreen() {
     dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
   };
 
+  // Memoized render function for better performance
+  const renderSessionItem = useCallback(({ item }: { item: Session }) => {
+    // Allow editing for unmarked sessions and cancelled sessions (not completed)
+    const allowEdit = !item.completed;
+    
+    return (
+      <SessionCard
+        session={item}
+        onEdit={allowEdit ? handleEditSession : () => Alert.alert('Info', 'You need to unmark the session first to edit')}
+        onDelete={handleDeleteSession}
+        onToggleComplete={handleToggleComplete}
+        allowEdit={true} // Always show edit button
+        editDisabled={!allowEdit} // Disable when completed
+      />
+    );
+  }, [handleEditSession, handleDeleteSession, handleToggleComplete]);
+
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
       <View style={styles.header}>
@@ -195,21 +212,16 @@ export default function TodayScreen() {
           data={todaySessions}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => {
-            // Allow editing for unmarked sessions and cancelled sessions (not completed)
-            const allowEdit = !item.completed;
-            
-            return (
-              <SessionCard
-                session={item}
-                onEdit={allowEdit ? handleEditSession : () => Alert.alert('Info', 'You need to unmark the session first to edit')}
-                onDelete={handleDeleteSession}
-                onToggleComplete={handleToggleComplete}
-                allowEdit={true} // Always show edit button
-                editDisabled={!allowEdit} // Disable when completed
-              />
-            );
-          }}
+          renderItem={renderSessionItem}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          removeClippedSubviews={true}
+          getItemLayout={(data, index) => ({
+            length: 120, // Approximate height of each item
+            offset: 120 * index,
+            index,
+          })}
           refreshControl={
             <RefreshControl
               refreshing={sessionsLoading}

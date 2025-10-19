@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext, ReactNode } from
 import { User } from '../types';
 import { getCurrentUser, loginUser, logoutUser, registerUser, updateUser, resetPassword as resetUserPassword } from './mongoAuth';
 import { sendFCMTokenToServer } from './fcmService';
+import { setGlobalLogout } from './apiInterceptor';
 
 interface AuthContextType {
   user: Omit<User, 'password'> | null;
@@ -63,6 +64,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(false);
     }
   };
+
+  // Set up global logout function for API interceptor
+  useEffect(() => {
+    setGlobalLogout(logout);
+  }, []);
 
   const register = async (userData: Omit<User, 'id' | 'createdAt'>) => {
     try {

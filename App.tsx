@@ -13,16 +13,23 @@ import { AuthProvider } from './utils/AuthContext';
 import { AppProvider } from './src/context/AppContext';
 import { NotificationProvider } from './src/context/NotificationContext';
 import { navigate } from './utils/navigationService';
+import { setupFCMHandlers } from './utils/fcmService';
 import AppNavigator from './src/navigation/AppNavigator';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
+
+  // Setup FCM handlers globally (for notification clicks)
+  useEffect(() => {
+    setupFCMHandlers();
+  }, []);
 
   // Global navigation handler for notifications (fallback)
   useEffect(() => {
     const checkForPendingEventNavigation = async () => {
       try {
         const pendingEventId = await AsyncStorage.getItem('pendingEventId');
+        
         if (pendingEventId) {
           // Clear the pending event ID FIRST to prevent duplicate navigation
           await AsyncStorage.removeItem('pendingEventId');
@@ -37,8 +44,8 @@ function App() {
       }
     };
 
-    // Check for pending navigation after a short delay
-    const timer = setTimeout(checkForPendingEventNavigation, 1000);
+    // Check for pending navigation after a longer delay (for cold start)
+    const timer = setTimeout(checkForPendingEventNavigation, 3000);
     
     return () => clearTimeout(timer);
   }, []);

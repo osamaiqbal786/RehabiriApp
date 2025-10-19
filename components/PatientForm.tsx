@@ -27,12 +27,11 @@ export default function PatientForm({ existingPatient, onSave, onCancel }: Patie
   };
 
   const [name, setName] = useState(existingPatient?.name || '');
-  const [contactNumber, setContactNumber] = useState(existingPatient?.contactNumber || '');
   const [age, setAge] = useState(existingPatient?.age?.toString() || '');
   const [gender, setGender] = useState<'male' | 'female' | 'other' | ''>(existingPatient?.gender || '');
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; contactNumber?: string; age?: string; gender?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; age?: string; gender?: string }>({});
 
   const genderOptions = [
     { label: 'Male', value: 'male' },
@@ -51,15 +50,10 @@ export default function PatientForm({ existingPatient, onSave, onCancel }: Patie
   };
 
   const validateForm = (): boolean => {
-    const newErrors: { name?: string; contactNumber?: string; age?: string; gender?: string } = {};
+    const newErrors: { name?: string; age?: string; gender?: string } = {};
     
     if (!name.trim()) {
       newErrors.name = 'Patient name is required';
-    }
-    
-    // Contact number is optional, but if provided, validate it
-    if (contactNumber.trim() && !/^\+?[0-9\s-()]{8,15}$/.test(contactNumber.trim())) {
-      newErrors.contactNumber = 'Please enter a valid contact number';
     }
     
     // Age validation - now mandatory
@@ -93,7 +87,6 @@ export default function PatientForm({ existingPatient, onSave, onCancel }: Patie
         const updatedPatientData: Patient = {
           ...existingPatient,
           name: name.trim(),
-          contactNumber: contactNumber.trim() || undefined,
           age: parseInt(age.trim(), 10),
           gender: gender as 'male' | 'female' | 'other',
         };
@@ -103,7 +96,6 @@ export default function PatientForm({ existingPatient, onSave, onCancel }: Patie
       } else {
         const newPatient = await savePatient({
           name: name.trim(),
-          contactNumber: contactNumber.trim() || undefined,
           age: parseInt(age.trim(), 10),
           gender: gender as 'male' | 'female' | 'other',
         });
@@ -139,18 +131,6 @@ export default function PatientForm({ existingPatient, onSave, onCancel }: Patie
         {errors.name ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.name}</Text> : null}
       </View>
       
-      <View style={styles.formGroup}>
-        <Text style={[styles.label, { color: theme.textColor }]}>Contact Number (Optional)</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.borderColor }, errors.contactNumber ? styles.inputError : null]}
-          value={contactNumber}
-          onChangeText={setContactNumber}
-          placeholder="Enter contact number"
-          keyboardType="phone-pad"
-          placeholderTextColor={isDarkMode ? '#888888' : '#999999'}
-        />
-        {errors.contactNumber ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.contactNumber}</Text> : null}
-      </View>
 
       <View style={styles.formGroup}>
         <Text style={[styles.label, { color: theme.textColor }]}>Age</Text>

@@ -24,6 +24,10 @@ import PaymentModal from '../../components/PaymentModal';
 import DataStatusBar from '../components/DataStatusBar';
 import StatusMessage from '../components/StatusMessage';
 
+// Constants
+const MAX_DATE_RANGE_DAYS = 90;
+const FLATLIST_ITEM_HEIGHT = 120;
+
 export default function PastScreen() {
   const [isFiltered, setIsFiltered] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
@@ -35,6 +39,7 @@ export default function PastScreen() {
   const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
   const [currentFilters, setCurrentFilters] = useState<any>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [filterKey, setFilterKey] = useState(0); // Key to force filter reset
 
   // Use global state instead of local state
   const { 
@@ -69,40 +74,46 @@ export default function PastScreen() {
     separatorColor: isDarkMode ? '#333333' : '#EFEFEF',
   };
 
-  // Helper function to validate date range (max 90 days)
+  // Helper function to get today's date in YYYY-MM-DD format
+  const getTodayDateString = (): string => {
+    const today = new Date();
+    return today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  };
+
+  // Helper function to get the cached date range (90 days back from yesterday)
+  const getCachedDateRange = useCallback(() => {
+    const todayObj = new Date(getTodayDateString() + 'T12:00:00');
+    const ninetyDaysAgo = new Date(todayObj);
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - MAX_DATE_RANGE_DAYS);
+    const yesterday = new Date(todayObj);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    return {
+      start: ninetyDaysAgo.toISOString().split('T')[0],
+      end: yesterday.toISOString().split('T')[0]
+    };
+  }, []);
+
+  // Helper function to validate date range
   const validateDateRange = (startDate: string, endDate: string): { isValid: boolean; adjustedEndDate?: string } => {
     const start = new Date(startDate);
     const end = new Date(endDate);
     const daysDiff = Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
     
-    if (daysDiff > 90) {
-      // Auto-adjust end date to 90 days from start date
+    if (daysDiff > MAX_DATE_RANGE_DAYS) {
       const adjustedEnd = new Date(start);
-      adjustedEnd.setDate(adjustedEnd.getDate() + 90);
+      adjustedEnd.setDate(adjustedEnd.getDate() + MAX_DATE_RANGE_DAYS);
       return { isValid: false, adjustedEndDate: adjustedEnd.toISOString().split('T')[0] };
     }
     
     return { isValid: true };
   };
 
-  // Helper function to check if BOTH start and end dates are within the 90-day fetched range
-  const isWithinThreeMonthCache = (startDate: string, endDate: string): boolean => {
-    const today = new Date();
-    const userDate = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-    
-    // Calculate the 90-day range that was fetched
-    const todayObj = new Date(userDate + 'T12:00:00');
-    const ninetyDaysAgo = new Date(todayObj);
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-    const yesterday = new Date(todayObj);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    const fetchedStartDate = ninetyDaysAgo.toISOString().split('T')[0];
-    const fetchedEndDate = yesterday.toISOString().split('T')[0];
-    
-    // Both start and end dates must be within the fetched range
-    return startDate >= fetchedStartDate && startDate <= fetchedEndDate && 
-           endDate >= fetchedStartDate && endDate <= fetchedEndDate;
+  // Helper function to check if dates are within cached range
+  const isWithinCachedRange = (startDate: string, endDate: string): boolean => {
+    const { start: cachedStart, end: cachedEnd } = getCachedDateRange();
+    return startDate >= cachedStart && startDate <= cachedEnd && 
+           endDate >= cachedStart && endDate <= cachedEnd;
   };
 
   // Local filtering function - no API calls needed!
@@ -130,25 +141,17 @@ export default function PastScreen() {
     return filtered;
   }, []);
 
-  // Handle filtering logic - now using local filtering!
+  // Consolidated filter application logic
   const applyFilters = useCallback((filters?: any) => {
     try {
-      // Store current filters for export
       setCurrentFilters(filters);
       
-      if (patientId && !filters) {
-        // Filter by patient from route params
+      if (filters || patientId) {
+        const filterToApply = filters || { patientId };
         setIsFiltered(true);
-        const filter = { patientId: patientId };
-        const filteredSessionsData = filterSessionsLocally(pastSessions, filter);
-        setFilteredSessions(filteredSessionsData);
-      } else if (filters) {
-        // Filter by provided filters
-        setIsFiltered(true);
-        const filteredSessionsData = filterSessionsLocally(pastSessions, filters);
+        const filteredSessionsData = filterSessionsLocally(pastSessions, filterToApply);
         setFilteredSessions(filteredSessionsData);
       } else {
-        // No filters, use global state
         setIsFiltered(false);
         setFilteredSessions([]);
       }
@@ -156,6 +159,27 @@ export default function PastScreen() {
       console.error('Error applying filters:', error);
     }
   }, [patientId, pastSessions, filterSessionsLocally]);
+
+  // Helper function to refresh data and reapply filters
+  const refreshDataAndReapplyFilters = useCallback(() => {
+    dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
+    if (isFiltered && currentFilters) {
+      applyFilters(currentFilters);
+    }
+  }, [dispatch, isFiltered, currentFilters, applyFilters]);
+
+  // Helper function to get export name based on current filters
+  const getExportName = useCallback((): string => {
+    if (currentFilters?.patientId) {
+      const patient = patients.find(p => p.id === currentFilters.patientId);
+      return patient?.name || 'Unknown Patient';
+    }
+    if (patientId) {
+      const patient = patients.find(p => p.id === patientId);
+      return patient?.name || 'Unknown Patient';
+    }
+    return 'All Patients';
+  }, [currentFilters, patientId, patients]);
 
   // Get the sessions to display (filtered or global)
   const displaySessions = isFiltered ? filteredSessions : pastSessions;
@@ -187,14 +211,13 @@ export default function PastScreen() {
           return;
         }
         
-        // Check if the range is within our cached 90-day data
-        if (isWithinThreeMonthCache(filters.startDate, filters.endDate)) {
+        // Check if the range is within our cached data
+        if (isWithinCachedRange(filters.startDate, filters.endDate)) {
           // Use local store data
           applyFilters(filters);
         } else {
           // Fetch from server with the specified date range
-          const today = new Date();
-          const userDate = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+          const userDate = getTodayDateString();
           
           const serverSessions = await getPastSessions(userDate, filters.startDate, filters.endDate, filters.includeCancelled);
           
@@ -223,6 +246,7 @@ export default function PastScreen() {
     setShowFilter(false); // Hide filter after clearing
     setFilteredSessions([]);
     setCurrentFilters(null); // Clear current filters
+    setFilterKey(prev => prev + 1); // Force filter form reset
   };
 
   const handleDeleteSession = (sessionId: string) => {
@@ -237,12 +261,7 @@ export default function PastScreen() {
           onPress: async () => {
             try {
               await deleteSession(sessionId);
-              // Trigger refresh of sessions data
-              dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
-              // Reapply filters if needed
-              if (isFiltered) {
-                applyFilters();
-              }
+              refreshDataAndReapplyFilters();
             } catch (error) {
               console.error('Error deleting session:', error);
               Alert.alert('Error', 'Failed to delete session');
@@ -277,12 +296,7 @@ export default function PastScreen() {
         amount: amount
       };
       await updateSession(updatedSession);
-      // Trigger refresh of sessions data
-      dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
-      // Reapply filters if needed
-      if (isFiltered) {
-        applyFilters();
-      }
+      refreshDataAndReapplyFilters();
       
       // Close modal after successful update
       setPaymentModalVisible(false);
@@ -300,6 +314,29 @@ export default function PastScreen() {
     setSessionToComplete(null);
   };
 
+  // Memoized render function for better performance
+  const renderSessionItem = useCallback(({ item }: { item: Session }) => {
+    // Allow editing for unmarked sessions and cancelled sessions (not completed)
+    const allowEdit = !item.completed;
+    
+    return (
+      <SessionCard
+        session={item}
+        onEdit={allowEdit ? (session) => handleEditSession(session) : () => Alert.alert('Info', 'Cannot edit completed sessions')}
+        onDelete={(sessionId) => handleDeleteSession(sessionId)} 
+        onToggleComplete={(session, completed) => {
+          // Only allow marking incomplete sessions as complete
+          if (session.completed && !completed) {
+            Alert.alert('Info', 'Completed sessions cannot be marked as incomplete. You can delete the session if needed.');
+          } else if (!session.completed && completed) {
+            handleToggleComplete(session, completed);
+          }
+        }}
+        allowEdit={allowEdit} // Hide edit button for completed sessions only
+      />
+    );
+  }, [handleEditSession, handleDeleteSession, handleToggleComplete]);
+
   const handleEditSession = (session: Session) => {
     setSelectedSession(session);
     setSessionModalVisible(true);
@@ -308,18 +345,19 @@ export default function PastScreen() {
   const handleSaveSession = async (_session: Session) => {
     setSessionModalVisible(false);
     setSelectedSession(undefined);
-    // Trigger refresh of sessions data
-    dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
-    // Reapply filters if needed
-    if (isFiltered) {
-      applyFilters();
-    }
+    refreshDataAndReapplyFilters();
   };
 
   // Apply filters when component mounts or patientId changes
   useEffect(() => {
-    applyFilters();
-  }, [applyFilters]);
+    // Reapply stored filters when data changes (e.g., after refresh)
+    if (isFiltered && currentFilters) {
+      applyFilters(currentFilters);
+    } else if (patientId) {
+      // Apply patient filter from route params
+      applyFilters();
+    }
+  }, [pastSessions, applyFilters, isFiltered, currentFilters, patientId]);
 
   const handleExportSessions = async () => {
     try {
@@ -329,30 +367,8 @@ export default function PastScreen() {
       }
       
       setIsExporting(true);
-      
-      // Determine export name based on current filters
-      let exportName = "All Patients";
-      
-      if (currentFilters && currentFilters.patientId) {
-        // Find patient name from the patient ID
-        const patient = patients.find(p => p.id === currentFilters.patientId);
-        if (patient) {
-          exportName = patient.name;
-        }
-      } else if (patientId) {
-        // Use patient from route params
-        const patient = patients.find(p => p.id === patientId);
-        if (patient) {
-          exportName = patient.name;
-        }
-      }
-      
+      const exportName = getExportName();
       await exportSessionsToExcel(displaySessions, exportName);
-      // if (success) {
-      //   Alert.alert('Success', 'Sessions exported successfully');
-      // } else {
-      //   Alert.alert('Error', 'Failed to export sessions');
-      // }
     } catch (error) {
       console.error('Error exporting sessions:', error);
       Alert.alert('Error', 'Failed to export sessions');
@@ -374,12 +390,31 @@ export default function PastScreen() {
             </TouchableOpacity>
           )}
           
-          <TouchableOpacity 
-            style={[styles.filterButton, { backgroundColor: theme.borderColor }]}
-            onPress={() => setShowFilter(!showFilter)}
-          >
-            <Filter size={20} color={theme.textColor} />
-          </TouchableOpacity>
+          <View style={styles.filterButtonContainer}>
+            <TouchableOpacity 
+              style={[
+                styles.filterButton, 
+                { 
+                  backgroundColor: isFiltered ? theme.primaryColor : theme.borderColor,
+                }
+              ]}
+              onPress={() => setShowFilter(!showFilter)}
+            >
+              <Filter size={20} color={isFiltered ? 'white' : theme.textColor} />
+            </TouchableOpacity>
+            {isFiltered && (
+              <TouchableOpacity
+                style={styles.clearFilterIcon}
+                onPress={(e) => {
+                  e.stopPropagation(); // Prevent opening filter modal
+                  handleClearFilter();
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.clearFilterIconText}>×</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           
           <TouchableOpacity 
             style={[styles.exportButton, { backgroundColor: theme.primaryColor }]}
@@ -397,13 +432,14 @@ export default function PastScreen() {
       </View>
 
       <SessionFilter 
+        key={filterKey} // Force reset when key changes
         patients={patients}
         onApplyFilter={handleApplyFilter}
         onClearFilter={handleClearFilter}
         visible={showFilter}
         onClose={() => setShowFilter(false)}
         showCancelledOption={true}
-        resetOnOpen={false} // Don't reset values when reopening modal
+        resetOnOpen={true} // Reset values when modal opens
       />
 
       {/* Data Status Bar */}
@@ -446,28 +482,17 @@ export default function PastScreen() {
         <FlatList
           data={displaySessions}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => {
-            // Allow editing for unmarked sessions and cancelled sessions (not completed)
-            const allowEdit = !item.completed;
-            
-            return (
-              <SessionCard
-                session={item}
-                onEdit={allowEdit ? (session) => handleEditSession(session) : () => Alert.alert('Info', 'Cannot edit completed sessions')}
-                onDelete={(sessionId) => handleDeleteSession(sessionId)} 
-                onToggleComplete={(session, completed) => {
-                  // Only allow marking incomplete sessions as complete
-                  if (session.completed && !completed) {
-                    Alert.alert('Info', 'Completed sessions cannot be marked as incomplete. You can delete the session if needed.');
-                  } else if (!session.completed && completed) {
-                    handleToggleComplete(session, completed);
-                  }
-                }}
-                allowEdit={allowEdit} // Hide edit button for completed sessions only
-              />
-            );
-          }}
+          renderItem={renderSessionItem}
           contentContainerStyle={styles.listContent}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          removeClippedSubviews={true}
+          getItemLayout={(data, index) => ({
+            length: FLATLIST_ITEM_HEIGHT,
+            offset: FLATLIST_ITEM_HEIGHT * index,
+            index,
+          })}
           refreshControl={
             <RefreshControl
               refreshing={sessionsLoading}
@@ -523,6 +548,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  filterButtonContainer: {
+    position: 'relative',
+    marginRight: 10,
+  },
   filterButton: {
     width: 36,
     height: 36,
@@ -534,7 +563,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
-    marginRight: 10,
+  },
+  clearFilterIcon: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FF3B30',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  clearFilterIconText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+    lineHeight: 18,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   clearFilterButton: {
     paddingHorizontal: 12,

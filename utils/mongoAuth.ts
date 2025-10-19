@@ -1,29 +1,7 @@
 import { User } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../src/config';
-
-// Helper function to make API calls
-const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-  try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error(`API call error for ${endpoint}:`, error);
-    throw error;
-  }
-};
+import { apiCall } from './apiInterceptor';
 
 // Helper function to get auth headers with JWT token
 const getAuthHeaders = async () => {
