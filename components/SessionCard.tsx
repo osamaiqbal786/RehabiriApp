@@ -27,7 +27,7 @@ const SessionCard = memo(function SessionCard({ session, onEdit, onDelete, onTog
     actionButtonColor: isDarkMode ? '#8E8E93' : '#000000',
     completedTextColor: '#34C759',
     editDeleteColor: '#FF3B30',
-    primaryColor: '#0A84FF',
+    primaryColor: isDarkMode ? '#0A84FF' : '#00143f',
     dateTimeLabelColor: '#8E8E93',
     notesColor: isDarkMode ? '#FFFFFF' : '#000000',
     amountColor: '#34C759',

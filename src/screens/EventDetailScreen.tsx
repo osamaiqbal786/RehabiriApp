@@ -34,7 +34,7 @@ export default function EventDetailScreen() {
     textColor: isDarkMode ? '#FFFFFF' : '#000000',
     secondaryTextColor: isDarkMode ? '#8E8E93' : '#6D6D70',
     borderColor: isDarkMode ? '#444444' : '#E5E5E7',
-    primaryColor: '#0A84FF',
+    primaryColor: isDarkMode ? '#0A84FF' : '#00143f',
     errorColor: '#FF453A',
   };
 

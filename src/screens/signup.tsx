@@ -63,7 +63,8 @@ export default function SignupScreen() {
     inputBackground: isDarkMode ? '#3A3A3A' : '#FAFAFA',
     inputBorder: isDarkMode ? '#444444' : '#DDDDDD',
     placeholderColor: isDarkMode ? '#888888' : '#999999',
-    primaryColor: '#0A84FF',
+    primaryColor: isDarkMode ? '#0A84FF' : '#00143f', // iOS blue for dark mode, brand color for light mode
+    primaryColorHover: '#002d5c',
     errorColor: '#FF453A',
   };
 

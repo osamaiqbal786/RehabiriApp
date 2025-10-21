@@ -3,7 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useColorScheme } from 'react-native';
-import { Calendar, Clock, Users } from 'lucide-react-native';
+import { Calendar, Clock, Users, LayoutDashboard, History } from 'lucide-react-native';
 import { setNavigationRef } from '../../utils/navigationService';
 
 // Import screens
@@ -13,14 +13,14 @@ import SignupScreen from '../screens/signup';
 import ForgotPasswordScreen from '../screens/forgot-password';
 import PasswordResetOTPScreen from '../screens/password-reset-otp';
 import NewPasswordScreen from '../screens/new-password';
+import DashboardScreen from '../screens/DashboardScreen';
 import HomeScreen from '../screens/HomeScreen';
 import PatientsScreen from '../screens/patients';
 import UpcomingScreen from '../screens/upcoming';
 import PastScreen from '../screens/past';
 import PatientSessionsScreen from '../screens/patient-sessions';
 import ProfileScreen from '../screens/profile';
-import EarningsScreen from '../screens/earnings';
-import EarningsDetailScreen from '../screens/earnings-detail';
+import AnalyticsScreen from '../screens/AnalyticsScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import EventDetailScreen from '../screens/EventDetailScreen';
 
@@ -45,6 +45,9 @@ function TabNavigator() {
           // If we still don't have a title, use a default based on the route
           if (!title) {
             switch (route.name) {
+              case 'Dashboard':
+                title = 'Dashboard';
+                break;
               case 'Today':
                 title = "Today's Sessions";
                 break;
@@ -58,19 +61,29 @@ function TabNavigator() {
                 title = 'Patient Management';
                 break;
               default:
-                title = "Today's Sessions";
+                title = 'Dashboard';
             }
           }
           
           return <CustomHeader title={title} showBellIcon={true} />;
         },
-        tabBarActiveTintColor: colorScheme === 'dark' ? '#4F8EF7' : '#0A84FF',
+        tabBarActiveTintColor: colorScheme === 'dark' ? '#4F8EF7' : '#00143f',
         tabBarInactiveTintColor: colorScheme === 'dark' ? '#8E8E93' : '#8E8E93',
         tabBarStyle: {
           backgroundColor: colorScheme === 'dark' ? '#1C1C1E' : '#FFFFFF',
         },
       }}
     >
+      <Tab.Screen 
+        name="Dashboard" 
+        component={DashboardScreen}
+        options={{
+          title: 'Dashboard',
+          headerTitle: 'Dashboard',
+          tabBarLabel: 'Dashboard',
+          tabBarIcon: ({ color, size }) => <LayoutDashboard size={size} color={color} />,
+        }}
+      />
       <Tab.Screen 
         name="Today" 
         component={HomeScreen}
@@ -98,7 +111,7 @@ function TabNavigator() {
           title: 'Past Sessions',
           headerTitle: 'Past Sessions',
           tabBarLabel: 'Past',
-          tabBarIcon: ({ color, size }) => <Clock size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <History size={size} color={color} />,
         }}
       />
       <Tab.Screen 
@@ -170,25 +183,11 @@ const AppNavigator = forwardRef((props, ref) => {
           }}
         />
         <Stack.Screen 
-          name="Earnings" 
-          component={EarningsScreen}
+          name="Analytics" 
+          component={AnalyticsScreen}
           options={{
             headerShown: true,
-            header: () => <CustomHeader title="Monthly Earnings" showBackButton={true} hideProfileDropdown={true} />,
-          }}
-        />
-        <Stack.Screen 
-          name="EarningsDetail" 
-          component={EarningsDetailScreen}
-          options={{
-            headerShown: true,
-            header: ({ route }) => {
-              const params = route.params as { year?: number; month?: string } || {};
-              const title = params.year && params.month 
-                ? `Earnings - ${new Date(params.year, parseInt(params.month, 10) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
-                : 'Earnings Detail';
-              return <CustomHeader title={title} showBackButton={true} hideProfileDropdown={true} />;
-            },
+            header: () => <CustomHeader title="Analytics" showBackButton={true} hideProfileDropdown={true} />,
           }}
         />
         <Stack.Screen 

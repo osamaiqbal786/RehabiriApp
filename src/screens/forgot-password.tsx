@@ -34,7 +34,7 @@ export default function ForgotPasswordScreen() {
     inputBackground: isDarkMode ? '#3A3A3A' : '#FAFAFA',
     inputBorder: isDarkMode ? '#444444' : '#DDDDDD',
     placeholderColor: isDarkMode ? '#888888' : '#999999',
-    primaryColor: '#0A84FF',
+    primaryColor: isDarkMode ? '#0A84FF' : '#00143f',
     errorColor: '#FF453A',
   };
 

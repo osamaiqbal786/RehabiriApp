@@ -18,6 +18,7 @@ import { saveMultipleSessions, updateSession, updateAllPatientSessionsDetails } 
 import { Session } from '../types';
 import { scheduleSessionNotification, cancelSessionNotification } from '../utils/notifications';
 import { useAppState } from '../src/hooks/useAppState';
+import { useAuth } from '../utils/AuthContext';
 import MultiDateCalendar from './MultiDateCalendar';
 
 interface SessionFormProps {
@@ -33,6 +34,9 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   
+  // Get user info for therapist name
+  const { user } = useAuth();
+  
   // Get all sessions from store
   const { todaySessions, upcomingSessions } = useAppState();
 
@@ -45,7 +49,7 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
     textColor: isDarkMode ? '#FFFFFF' : '#000000',
     borderColor: isDarkMode ? '#444444' : '#DDDDDD',
     inputBackground: isDarkMode ? '#2A2A2A' : 'white',
-    primaryColor: '#0A84FF',
+    primaryColor: isDarkMode ? '#0A84FF' : '#00143f',
     errorColor: '#FF453A',
     cancelButtonBg: isDarkMode ? '#444444' : '#E5E5EA',
     modalBg: isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
@@ -227,6 +231,7 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
           time: formattedTime,
           notes,
           cancelled,
+          therapistName: user?.name || existingSession.therapistName, // Keep existing or set to current user
         };
         
         // Add amount if provided, or set to 0 if cancelled
@@ -266,6 +271,7 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
             notes,
             completed: false,
             cancelled,
+            therapistName: user?.name, // Automatically set therapist name to current user's name
           };
           
           // Add amount if provided, or set to 0 if cancelled
@@ -331,6 +337,7 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
                 time: formattedTime,
                 notes,
                 cancelled,
+                therapistName: user?.name || existingSession.therapistName, // Keep existing or set to current user
               };
               
               // Add amount if provided, or set to 0 if cancelled
@@ -480,44 +487,42 @@ export default function SessionForm({ existingSession, preselectedPatientId, onS
       {/* Patient Selector */}
       <View style={styles.formGroup}>
         <Text style={[styles.label, { color: theme.textColor }]}>Patient</Text>
-        {patients.length > 0 ? (
-          existingSession ? (
-            // For existing sessions, show patient name as clickable but don't allow editing
-            <TouchableOpacity 
-              style={[
-                styles.input, 
-                { 
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.borderColor,
-                  opacity: 0.7
-                }
-              ]}
-              onPress={() => {
-                // Could navigate to patient details or show patient info
-                Alert.alert('Patient Info', `Patient: ${getPatientNameById(patientId)}`);
-              }}
-            >
-              <Text style={{ color: theme.textColor }}>
-                {patientId ? getPatientNameById(patientId) : 'No patient selected'}
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            // For new sessions, allow patient selection
-            <TouchableOpacity 
-              style={[
-                styles.input, 
-                { 
-                  backgroundColor: theme.inputBackground,
-                  borderColor: errors.patientId ? theme.errorColor : theme.borderColor 
-                }
-              ]}
-              onPress={() => setShowPatientPicker(true)}
-            >
-              <Text style={{ color: theme.textColor }}>
-                {patientId ? getPatientNameById(patientId) : 'Select a patient'}
-              </Text>
-            </TouchableOpacity>
-          )
+        {existingSession ? (
+          // For existing sessions, always show patient name (even if not in local patient list)
+          <TouchableOpacity 
+            style={[
+              styles.input, 
+              { 
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.borderColor,
+                opacity: 0.7
+              }
+            ]}
+            onPress={() => {
+              // Could navigate to patient details or show patient info
+              Alert.alert('Patient Info', `Patient: ${existingSession.patientName || getPatientNameById(patientId)}`);
+            }}
+          >
+            <Text style={{ color: theme.textColor }}>
+              {existingSession.patientName || (patientId ? getPatientNameById(patientId) : 'No patient selected')}
+            </Text>
+          </TouchableOpacity>
+        ) : patients.length > 0 ? (
+          // For new sessions, allow patient selection only if patients are available
+          <TouchableOpacity 
+            style={[
+              styles.input, 
+              { 
+                backgroundColor: theme.inputBackground,
+                borderColor: errors.patientId ? theme.errorColor : theme.borderColor 
+              }
+            ]}
+            onPress={() => setShowPatientPicker(true)}
+          >
+            <Text style={{ color: theme.textColor }}>
+              {patientId ? getPatientNameById(patientId) : 'Select a patient'}
+            </Text>
+          </TouchableOpacity>
         ) : (
           <Text style={[styles.noDataText, { color: theme.errorColor }]}>
             No patients available. Please add a patient first.

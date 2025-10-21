@@ -44,7 +44,7 @@ export default function EarningsDetailScreen() {
     textColor: isDarkMode ? '#FFFFFF' : '#000000',
     cardBackground: isDarkMode ? '#2A2A2A' : 'white',
     borderColor: isDarkMode ? '#444444' : '#DDDDDD',
-    primaryColor: '#0A84FF',
+    primaryColor: isDarkMode ? '#0A84FF' : '#00143f',
     earningsColor: '#34C759',
     secondaryTextColor: isDarkMode ? '#8E8E93' : '#6D6D70',
   };

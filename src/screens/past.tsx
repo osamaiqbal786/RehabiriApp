@@ -51,6 +51,9 @@ export default function PastScreen() {
     dispatch 
   } = useAppState();
   
+  // Get user data for clinic filtering
+  const { user } = require('../../utils/AuthContext').useAuth();
+  
   const { refreshSessions } = useDataRefresh();
 
   // Get route params
@@ -67,7 +70,7 @@ export default function PastScreen() {
     cardBackground: isDarkMode ? '#2A2A2A' : 'white',
     inputBackground: isDarkMode ? '#333333' : 'white',
     borderColor: isDarkMode ? '#444444' : '#DDDDDD',
-    primaryColor: '#0A84FF',
+    primaryColor: isDarkMode ? '#0A84FF' : '#00143f',
     errorColor: '#FF453A',
     placeholderColor: isDarkMode ? '#888888' : '#999999',
     modalBg: isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
@@ -125,6 +128,11 @@ export default function PastScreen() {
       filtered = filtered.filter(session => session.patientId === filters.patientId);
     }
 
+    // Filter by clinic ID (filter sessions created by a specific clinic)
+    if (filters.clinicId) {
+      filtered = filtered.filter(session => session.userId === filters.clinicId);
+    }
+
     // Filter by date range
     if (filters.startDate) {
       filtered = filtered.filter(session => session.date >= filters.startDate);
@@ -170,6 +178,10 @@ export default function PastScreen() {
 
   // Helper function to get export name based on current filters
   const getExportName = useCallback((): string => {
+    if (currentFilters?.clinicId) {
+      const clinic = user?.clinics?.find((c: { clinicId: string; clinicName: string }) => c.clinicId === currentFilters.clinicId);
+      return clinic?.clinicName || 'Unknown Clinic';
+    }
     if (currentFilters?.patientId) {
       const patient = patients.find(p => p.id === currentFilters.patientId);
       return patient?.name || 'Unknown Patient';
@@ -179,7 +191,7 @@ export default function PastScreen() {
       return patient?.name || 'Unknown Patient';
     }
     return 'All Patients';
-  }, [currentFilters, patientId, patients]);
+  }, [currentFilters, patientId, patients, user?.clinics]);
 
   // Get the sessions to display (filtered or global)
   const displaySessions = isFiltered ? filteredSessions : pastSessions;
@@ -434,6 +446,7 @@ export default function PastScreen() {
       <SessionFilter 
         key={filterKey} // Force reset when key changes
         patients={patients}
+        user={user}
         onApplyFilter={handleApplyFilter}
         onClearFilter={handleClearFilter}
         visible={showFilter}

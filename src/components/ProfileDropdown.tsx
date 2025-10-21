@@ -10,7 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { UserCircle, ChevronDown, LogOut, Settings, DollarSign } from 'lucide-react-native';
+import { UserCircle, ChevronDown, LogOut, Settings, TrendingUp } from 'lucide-react-native';
 import { useAuth } from '../../utils/AuthContext';
 import { useAppState } from '../hooks/useAppState';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,7 +31,7 @@ export default function ProfileDropdown() {
     cardBackground: isDarkMode ? '#2A2A2A' : 'white',
     textColor: isDarkMode ? '#FFFFFF' : '#000000',
     borderColor: isDarkMode ? '#444444' : '#DDDDDD',
-    primaryColor: '#0A84FF',
+    primaryColor: isDarkMode ? '#0A84FF' : '#00143f',
     modalBg: isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
   };
 
@@ -72,9 +72,9 @@ export default function ProfileDropdown() {
     navigation.navigate('Profile' as never);
   };
 
-  const navigateToEarnings = () => {
+  const navigateToAnalytics = () => {
     setIsOpen(false);
-    navigation.navigate('Earnings' as never);
+    navigation.navigate('Analytics' as never);
   };
 
   const toggleDropdown = () => {
@@ -156,11 +156,11 @@ export default function ProfileDropdown() {
 
             <TouchableOpacity 
               style={styles.menuItem} 
-              onPress={navigateToEarnings}
+              onPress={navigateToAnalytics}
               activeOpacity={0.7}
             >
-              <DollarSign size={20} color={isDarkMode ? 'white' : 'black'} style={styles.menuIcon} />
-              <Text style={[styles.menuText, { color: theme.textColor }]}>Show Earnings</Text>
+              <TrendingUp size={20} color={isDarkMode ? 'white' : 'black'} style={styles.menuIcon} />
+              <Text style={[styles.menuText, { color: theme.textColor }]}>View Analytics</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 

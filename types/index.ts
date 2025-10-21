@@ -19,11 +19,15 @@ export interface Session {
   completed: boolean;
   cancelled: boolean;
   amount?: number;
+  therapistId?: string; // ID of the assigned therapist (for clinic sessions)
+  therapistName?: string; // Name of the assigned therapist (for clinic sessions)
   createdAt: string;
+  updatedAt?: string; // Last update timestamp
 }
 
 export interface SessionFilter {
   patientId?: string;
+  clinicId?: string; // Filter by clinic (for therapists viewing clinic sessions)
   startDate?: string;
   endDate?: string;
   userId?: string; // Added to filter by user
@@ -78,5 +82,10 @@ export interface User {
     state?: string;
   };
   highestQualification?: string;
+  clinics?: Array<{
+    clinicId: string;
+    clinicName: string;
+    addedAt: string;
+  }>;
   createdAt: string;
 }

@@ -24,7 +24,7 @@ export default function PatientCard({ patient, onEdit, onDelete, onAddSession, o
     contactLabelColor: isDarkMode ? '#888888' : '#8E8E93',
     buttonBackgroundColor: isDarkMode ? '#444444' : '#F2F2F7',
     buttonTextColor: 'white',
-    primaryButtonColor: '#0A84FF',
+    primaryButtonColor: isDarkMode ? '#0A84FF' : '#00143f',
     secondaryButtonColor: '#5856D6',
     iconButtonColor: isDarkMode ? '#FFFFFF' : '#000000',
   };

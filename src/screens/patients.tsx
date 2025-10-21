@@ -54,7 +54,7 @@ export default function PatientsScreen() {
     cardBackground: isDarkMode ? '#2A2A2A' : 'white',
     inputBackground: isDarkMode ? '#333333' : 'white',
     borderColor: isDarkMode ? '#444444' : '#DDDDDD',
-    primaryColor: '#0A84FF',
+    primaryColor: isDarkMode ? '#0A84FF' : '#00143f',
     errorColor: '#FF453A',
     placeholderColor: isDarkMode ? '#888888' : '#999999',
     modalBg: isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',

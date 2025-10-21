@@ -13,14 +13,16 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  Image
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../utils/AuthContext';
 import { useAppState } from '../hooks/useAppState';
 import { useNotifications } from '../context/NotificationContext';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PermissionRequest from '../components/PermissionRequest';
+import LinearGradient from 'react-native-linear-gradient';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -33,6 +35,7 @@ export default function LoginScreen() {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const [isReady, setIsReady] = useState(false);
+  const insets = useSafeAreaInsets();
 
   // Wait for color scheme to be detected before showing content
   useEffect(() => {
@@ -49,10 +52,10 @@ export default function LoginScreen() {
     cardBackground: isDarkMode ? '#2A2A2A' : '#FFFFFF',
     textColor: isDarkMode ? '#FFFFFF' : '#333333',
     subtitleColor: isDarkMode ? '#BBBBBB' : '#666666',
-    inputBackground: isDarkMode ? '#3A3A3A' : '#FAFAFA',
-    inputBorder: isDarkMode ? '#444444' : '#DDDDDD',
+    inputBackground: isDarkMode ? '#3A3A3A' : '#FFFFFF',
+    inputBorder: isDarkMode ? '#444444' : '#E5E5E5',
     placeholderColor: isDarkMode ? '#888888' : '#999999',
-    primaryColor: '#0A84FF',
+    primaryColor: isDarkMode ? '#0A84FF' : '#00143f',
     errorColor: '#FF453A',
   };
 
@@ -94,7 +97,7 @@ export default function LoginScreen() {
       dispatch({ type: 'TRIGGER_SESSIONS_REFRESH' });
       
       navigation.navigate('MainTabs' as never);
-    } catch (error) {
+    } catch {
       Alert.alert('Login Failed', 'Invalid email or password. Please try again.');
     }
   };
@@ -103,16 +106,26 @@ export default function LoginScreen() {
     navigation.navigate('Signup' as never);
   };
 
-  // Don't render until color scheme is detected
   if (!isReady) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#1E1E1E' : '#F5F5F5' }]} />
+      <View style={[styles.container, styles.loadingContainer, { backgroundColor: theme.backgroundColor }]}>
+        <ActivityIndicator size="large" color={theme.primaryColor} />
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+    <LinearGradient
+      colors={isDarkMode ? ['#1E1E1E', '#2A2A2A', '#1E1E1E'] : ['#00143f', '#003d82', '#0066cc']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.container}
+    >
+      <StatusBar 
+        barStyle="light-content" 
+        translucent 
+        backgroundColor="transparent" 
+      />
       <PermissionRequest delay={1000} />
       
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -120,100 +133,145 @@ export default function LoginScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoidingView}
         >
-        <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollViewContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text style={[styles.title, { color: theme.textColor }]}>Rehabiri</Text>
-          <Text style={[styles.subtitle, { color: theme.subtitleColor }]}>Welcome Back</Text>
-
-          <View style={[styles.form, { backgroundColor: theme.cardBackground }]}>
-            <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: theme.textColor }]}>Email</Text>
-              <TextInput
-                style={[
-                  styles.input, 
-                  { 
-                    backgroundColor: theme.inputBackground, 
-                    borderColor: errors.email ? theme.errorColor : theme.inputBorder,
-                    color: theme.textColor
-                  }
-                ]}
-                placeholder="Enter your email"
-                placeholderTextColor={theme.placeholderColor}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              {errors.email ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.email}</Text> : null}
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: theme.textColor }]}>Password</Text>
-              <TextInput
-                style={[
-                  styles.input, 
-                  { 
-                    backgroundColor: theme.inputBackground, 
-                    borderColor: errors.password ? theme.errorColor : theme.inputBorder,
-                    color: theme.textColor
-                  }
-                ]}
-                placeholder="Enter your password"
-                placeholderTextColor={theme.placeholderColor}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
-              {errors.password ? <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.password}</Text> : null}
-            </View>
-
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: theme.primaryColor }]}
-              onPress={handleLogin}
-              disabled={isLoading}
-              activeOpacity={0.7}
+            <ScrollView 
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollViewContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
             >
-              {isLoading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Login</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('ForgotPassword' as never)}
-              style={styles.forgotPasswordContainer}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.forgotPasswordText, { color: theme.primaryColor }]}>
-                Forgot Password?
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.signupContainer}>
-              <Text style={[styles.signupText, { color: theme.subtitleColor }]}>Don't have an account?</Text>
-              <TouchableOpacity onPress={navigateToSignup} activeOpacity={0.7}>
-                <Text style={[styles.signupLink, { color: theme.primaryColor }]}>Sign Up</Text>
-              </TouchableOpacity>
+              {/* Header Section */}
+              <View style={[styles.header, { paddingTop: insets.top + 40 }]}>
+              {/* Decorative circles */}
+              <View style={styles.decorativeCircle1} />
+              <View style={styles.decorativeCircle2} />
+              
+              {/* Logo */}
+              <View style={styles.logoContainer}>
+                <View style={styles.logoCircle}>
+                  <View style={styles.logoInnerCircle}>
+                    <Image 
+                      source={require('../../assets/images/rehabiri-light-icon.png')}
+                      style={styles.logo}
+                      resizeMode="contain"
+                    />
+                  </View>
+                </View>
+              </View>
+              
+              <Text style={styles.title}>Rehabiri</Text>
+              <Text style={styles.subtitle}>Welcome Back</Text>
+              <View style={styles.divider} />
+              <Text style={styles.tagline}>Your Practice, Simplified</Text>
             </View>
-          </View>
-          
-          {/* Add extra padding at the bottom to ensure content is visible above keyboard */}
-          <View style={styles.bottomPadding} />
-        </ScrollView>
+
+            {/* Form Card */}
+            <View style={styles.formCard}>
+              <View style={[styles.form, { backgroundColor: theme.cardBackground }]}>
+                <View style={styles.inputContainer}>
+                  <Text style={[styles.label, { color: theme.textColor }]}>Email Address</Text>
+                  <View style={[
+                    styles.inputWrapper,
+                    { borderColor: errors.email ? theme.errorColor : theme.inputBorder }
+                  ]}>
+                    <TextInput
+                      style={[
+                        styles.input, 
+                        { 
+                          backgroundColor: theme.inputBackground, 
+                          color: theme.textColor
+                        }
+                      ]}
+                      placeholder="Enter your email"
+                      placeholderTextColor={theme.placeholderColor}
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+                  {errors.email && <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.email}</Text>}
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={[styles.label, { color: theme.textColor }]}>Password</Text>
+                  <View style={[
+                    styles.inputWrapper,
+                    { borderColor: errors.password ? theme.errorColor : theme.inputBorder }
+                  ]}>
+                    <TextInput
+                      style={[
+                        styles.input, 
+                        { 
+                          backgroundColor: theme.inputBackground, 
+                          color: theme.textColor
+                        }
+                      ]}
+                      placeholder="Enter your password"
+                      placeholderTextColor={theme.placeholderColor}
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry
+                      autoCapitalize="none"
+                    />
+                  </View>
+                  {errors.password && <Text style={[styles.errorText, { color: theme.errorColor }]}>{errors.password}</Text>}
+                </View>
+
+                <LinearGradient
+                  colors={isDarkMode ? ['#0A84FF', '#0066CC'] : ['#00143f', '#002d5c']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.buttonGradient, isLoading && styles.buttonDisabled]}
+                >
+                  <TouchableOpacity
+                    style={styles.button}
+                    onPress={handleLogin}
+                    disabled={isLoading}
+                    activeOpacity={0.8}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.buttonText}>Login</Text>
+                    )}
+                  </TouchableOpacity>
+                </LinearGradient>
+
+                <TouchableOpacity 
+                  onPress={() => navigation.navigate('ForgotPassword' as never)}
+                  style={styles.forgotPasswordContainer}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.forgotPasswordText, { color: theme.primaryColor }]}>
+                    Forgot Password?
+                  </Text>
+                </TouchableOpacity>
+
+                <View style={styles.signupContainer}>
+                  <Text style={[styles.signupText, { color: theme.subtitleColor }]}>Don't have an account? </Text>
+                  <TouchableOpacity onPress={navigateToSignup} activeOpacity={0.7}>
+                    <Text style={[styles.signupLink, { color: theme.primaryColor }]}>Sign Up</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+            
+            <View style={styles.bottomPadding} />
+          </ScrollView>
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
-    </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -222,31 +280,117 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollViewContent: {
-    padding: 20,
     flexGrow: 1,
   },
+  header: {
+    paddingBottom: 40,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  decorativeCircle1: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    top: -50,
+    right: -50,
+  },
+  decorativeCircle2: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    bottom: 20,
+    left: -30,
+  },
+  logoContainer: {
+    marginBottom: 15,
+    zIndex: 1,
+  },
+  logoCircle: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  logoInnerCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logo: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
   title: {
-    fontSize: 28,
+    fontSize: 40,
     fontWeight: 'bold',
-    marginTop: 40,
+    color: '#FFFFFF',
+    marginBottom: 5,
+    letterSpacing: 1,
+    zIndex: 1,
   },
   subtitle: {
-    fontSize: 16,
-    marginTop: 10,
-    marginBottom: 30,
+    fontSize: 18,
+    color: '#B3D9FF',
+    fontWeight: '500',
+    zIndex: 1,
+  },
+  divider: {
+    width: 60,
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 2,
+    marginVertical: 8,
+  },
+  tagline: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontStyle: 'italic',
+  },
+  formCard: {
+    flex: 1,
+    marginTop: -40,
+    borderTopLeftRadius: 35,
+    borderTopRightRadius: 35,
+    paddingTop: 30,
+    paddingHorizontal: 20,
   },
   form: {
-    borderRadius: 10,
-    padding: 20,
+    borderRadius: 24,
+    padding: 28,
     ...Platform.select({
-      web: {
-        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
       },
-      default: {
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+      android: {
+        elevation: 6,
       },
     }),
   },
@@ -254,25 +398,55 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     marginBottom: 8,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  inputWrapper: {
+    borderWidth: 2,
+    borderRadius: 12,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
+    padding: 16,
     fontSize: 16,
   },
   errorText: {
-    fontSize: 14,
-    marginTop: 5,
+    fontSize: 13,
+    marginTop: 6,
+  },
+  buttonGradient: {
+    borderRadius: 12,
+    marginTop: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#00143f',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   button: {
-    borderRadius: 8,
-    padding: 15,
+    padding: 16,
     alignItems: 'center',
-    marginTop: 10,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: '#fff',
@@ -282,7 +456,8 @@ const styles = StyleSheet.create({
   signupContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 20,
+    marginTop: 24,
+    flexWrap: 'wrap',
   },
   signupText: {
     fontSize: 14,
@@ -290,17 +465,16 @@ const styles = StyleSheet.create({
   signupLink: {
     fontSize: 14,
     fontWeight: '600',
-    marginLeft: 5,
   },
   bottomPadding: {
-    height: 100, // Extra padding at the bottom
+    height: 40,
   },
   forgotPasswordContainer: {
     alignItems: 'center',
-    marginTop: 15,
+    marginTop: 16,
   },
   forgotPasswordText: {
     fontSize: 14,
     fontWeight: '500',
   },
-}); 
+});

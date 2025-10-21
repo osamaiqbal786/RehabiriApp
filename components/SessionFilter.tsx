@@ -10,10 +10,11 @@ import {
   useColorScheme,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Patient, SessionFilter } from '../types';
+import { Patient, SessionFilter, User } from '../types';
 
 interface SessionFilterProps {
   patients: Patient[];
+  user?: Omit<User, 'password'> | null;
   onApplyFilter: (filter: SessionFilter) => void;
   onClearFilter: () => void;
   visible?: boolean;
@@ -22,7 +23,7 @@ interface SessionFilterProps {
   resetOnOpen?: boolean; // Whether to reset values when modal opens
 }
 
-export default function SessionFilterComponent({ patients, onApplyFilter, onClearFilter, visible = false, onClose, showCancelledOption = true, resetOnOpen = true }: SessionFilterProps) {
+export default function SessionFilterComponent({ patients, user, onApplyFilter, onClearFilter, visible = false, onClose, showCancelledOption = true, resetOnOpen = true }: SessionFilterProps) {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
 
@@ -32,13 +33,14 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
     textColor: isDarkMode ? '#FFFFFF' : '#000000',
     borderColor: isDarkMode ? '#444444' : '#DDDDDD',
     inputBackground: isDarkMode ? '#2A2A2A' : 'white',
-    primaryColor: '#0A84FF',
+    primaryColor: isDarkMode ? '#0A84FF' : '#00143f',
     errorColor: '#FF453A',
     modalBg: isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
     separatorColor: isDarkMode ? '#333333' : '#EFEFEF',
   };
 
   const [patientId, setPatientId] = useState<string>('');
+  const [clinicId, setClinicId] = useState<string>('');
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -52,6 +54,7 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
       setStartDate(new Date());
       setEndDate(new Date());
       setPatientId('');
+      setClinicId('');
       setIncludeCancelled(false);
     }
   }, [visible, resetOnOpen]);
@@ -130,6 +133,10 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
       filter.patientId = patientId;
     }
     
+    if (clinicId) {
+      filter.clinicId = clinicId;
+    }
+    
     filter.startDate = formatDateForStorage(startDate);
     filter.endDate = formatDateForStorage(endDate);
     
@@ -144,6 +151,7 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
 
   const clearFilter = () => {
     setPatientId('');
+    setClinicId('');
     setStartDate(new Date());
     setEndDate(new Date());
     setIncludeCancelled(false);
@@ -155,6 +163,26 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
     const patient = patients.find(p => p.id === id);
     return patient ? patient.name : '';
   };
+
+  const getClinicNameById = (id: string): string => {
+    const clinic = user?.clinics?.find(c => c.clinicId === id);
+    return clinic ? clinic.clinicName : '';
+  };
+
+  const getFilterDisplayName = (): string => {
+    if (clinicId) {
+      return `Clinic: ${getClinicNameById(clinicId)}`;
+    } else if (patientId) {
+      return getPatientNameById(patientId);
+    }
+    return 'Select patient or clinic';
+  };
+
+  // Create a combined list of patients and clinics for the picker
+  const filterOptions = [
+    ...patients.map(p => ({ id: p.id, name: p.name, type: 'patient' as const })),
+    ...(user?.clinics || []).map(c => ({ id: c.clinicId, name: `Clinic: ${c.clinicName}`, type: 'clinic' as const }))
+  ];
 
   const renderDateTimePicker = (mode: 'start' | 'end') => {
     const isStart = mode === 'start';
@@ -215,10 +243,10 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
     <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
       {visible && (
         <View style={[styles.filterOptions, { backgroundColor: theme.backgroundColor }]}>
-          {/* Patient Selector */}
+          {/* Patient/Clinic Selector */}
           <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: theme.textColor }]}>Patient</Text>
-            {patients.length > 0 ? (
+            <Text style={[styles.label, { color: theme.textColor }]}>Filter by Patient or Clinic</Text>
+            {filterOptions.length > 0 ? (
               <TouchableOpacity 
                 style={[
                   styles.input, 
@@ -230,12 +258,12 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
                 onPress={() => setShowPatientPicker(true)}
               >
                 <Text style={{ color: theme.textColor }}>
-                  {patientId ? getPatientNameById(patientId) : 'Select a patient'}
+                  {getFilterDisplayName()}
                 </Text>
               </TouchableOpacity>
             ) : (
               <Text style={[styles.noDataText, { color: theme.errorColor }]}>
-                No patients available. Please add a patient first.
+                No patients or clinics available.
               </Text>
             )}
           </View>
@@ -311,7 +339,7 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
         </View>
       )}
 
-      {/* Patient Picker Modal */}
+      {/* Patient/Clinic Picker Modal */}
       <Modal
         visible={showPatientPicker}
         transparent={true}
@@ -328,27 +356,36 @@ export default function SessionFilterComponent({ patients, onApplyFilter, onClea
             activeOpacity={1}
             onPress={() => {}} // Prevent closing when clicking inside
           >
-            <Text style={[styles.modalTitle, { color: theme.textColor }]}>Select Patient</Text>
+            <Text style={[styles.modalTitle, { color: theme.textColor }]}>Select Patient or Clinic</Text>
             <FlatList
-              data={patients}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[styles.patientItem, { borderBottomColor: theme.separatorColor }]}
-                  onPress={() => {
-                    setPatientId(item.id);
-                    setShowPatientPicker(false);
-                  }}
-                >
-                  <Text style={[
-                    styles.patientName,
-                    { color: theme.textColor },
-                    patientId === item.id ? { color: theme.primaryColor, fontWeight: 'bold' } : null
-                  ]}>
-                    {item.name}
-                  </Text>
-                </TouchableOpacity>
-              )}
+              data={filterOptions}
+              keyExtractor={(item) => `${item.type}-${item.id}`}
+              renderItem={({ item }) => {
+                const isSelected = item.type === 'patient' ? patientId === item.id : clinicId === item.id;
+                return (
+                  <TouchableOpacity
+                    style={[styles.patientItem, { borderBottomColor: theme.separatorColor }]}
+                    onPress={() => {
+                      if (item.type === 'patient') {
+                        setPatientId(item.id);
+                        setClinicId(''); // Clear clinic selection
+                      } else {
+                        setClinicId(item.id);
+                        setPatientId(''); // Clear patient selection
+                      }
+                      setShowPatientPicker(false);
+                    }}
+                  >
+                    <Text style={[
+                      styles.patientName,
+                      { color: theme.textColor },
+                      isSelected ? { color: theme.primaryColor, fontWeight: 'bold' } : null
+                    ]}>
+                      {item.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              }}
             />
           </TouchableOpacity>
         </TouchableOpacity>
