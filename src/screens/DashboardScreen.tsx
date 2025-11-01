@@ -129,10 +129,8 @@ export default function DashboardScreen() {
       </View>
 
       {/* Sessions Card */}
-      <TouchableOpacity 
+      <View 
         style={[styles.statCard, styles.sessionsCard, { backgroundColor: theme.cardBackground }]}
-        onPress={() => navigation.navigate('Today' as never)}
-        activeOpacity={0.7}
       >
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
@@ -144,7 +142,12 @@ export default function DashboardScreen() {
               <Text style={[styles.cardSubtitle, { color: theme.secondaryTextColor }]}>Track all therapy sessions</Text>
             </View>
           </View>
-          <Text style={[styles.viewButton, { color: theme.primaryColor }]}>View →</Text>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('Today' as never)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.viewButton, { color: theme.primaryColor }]}>View →</Text>
+          </TouchableOpacity>
         </View>
         
         <View style={styles.statsRow}>
@@ -168,13 +171,11 @@ export default function DashboardScreen() {
             <Text style={styles.statLabel}>⏰ Upcoming</Text>
           </View>
         </View>
-      </TouchableOpacity>
+      </View>
 
       {/* Patients Card */}
-      <TouchableOpacity 
+      <View 
         style={[styles.statCard, styles.patientsCard, { backgroundColor: theme.cardBackground }]}
-        onPress={() => navigation.navigate('Patients' as never)}
-        activeOpacity={0.7}
       >
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
@@ -186,7 +187,12 @@ export default function DashboardScreen() {
               <Text style={[styles.cardSubtitle, { color: theme.secondaryTextColor }]}>Total patient management</Text>
             </View>
           </View>
-          <Text style={[styles.viewButton, { color: theme.primaryColor }]}>View →</Text>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('Patients' as never)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.viewButton, { color: theme.primaryColor }]}>View →</Text>
+          </TouchableOpacity>
         </View>
         
         <View style={styles.statsRow}>
@@ -199,13 +205,11 @@ export default function DashboardScreen() {
             <Text style={styles.statLabel}>This Month</Text>
           </View>
         </View>
-      </TouchableOpacity>
+      </View>
 
       {/* Analytics Card */}
-      <TouchableOpacity 
+      <View 
         style={[styles.statCard, styles.analyticsCard, { backgroundColor: theme.cardBackground }]}
-        onPress={() => navigation.navigate('Analytics' as never)}
-        activeOpacity={0.7}
       >
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
@@ -217,7 +221,12 @@ export default function DashboardScreen() {
               <Text style={[styles.cardSubtitle, { color: theme.secondaryTextColor }]}>Track performance & earnings</Text>
             </View>
           </View>
-          <Text style={[styles.viewButton, { color: theme.primaryColor }]}>View →</Text>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('Analytics' as never)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.viewButton, { color: theme.primaryColor }]}>View →</Text>
+          </TouchableOpacity>
         </View>
         
         <View style={[styles.analyticsContent, { backgroundColor: theme.blueGradientStart }]}>
@@ -225,7 +234,7 @@ export default function DashboardScreen() {
             📊 View detailed insights on sessions, earnings, and clinic performance
           </Text>
         </View>
-      </TouchableOpacity>
+      </View>
 
       {/* Recent Activity */}
       <View style={[styles.activityCard, { backgroundColor: theme.cardBackground }]}>
